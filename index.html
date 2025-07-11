@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Controle: Reta Final da Dissertação</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Slate & Amber -->
+    <!-- Application Structure Plan: A dashboard-style, single-page application. The structure is designed to guide the user through their day chronologically, reinforcing the core principles of the source report. It starts with the non-negotiable "Pillars of Strategy" at the top for constant reinforcement. The main body is a "Daily Battle Station" with an interactive checklist, turning the static plan into an actionable tool. A "Weekly Progress" chart provides visual feedback and motivation. Finally, a "Rules of Engagement" section details the concentration tips as actionable rules. This structure was chosen to transform a passive plan into an active, daily ritual, directly addressing the user's need for structure, focus, and a clear reward system. -->
+    <!-- Visualization & Content Choices: 
+        Report Info: 3 Pillars (Write First, Hyperfocus, Reward) -> Goal: Reinforce Core Strategy -> Viz/Method: Static, high-visibility HTML cards. -> Interaction: None. Constant visibility is the goal. -> Justification: These are the guiding principles and must always be visible.
+        Report Info: Daily Schedule -> Goal: Guide daily tasks, create a sense of accomplishment. -> Viz/Method: Interactive HTML checklist. -> Interaction: Users check off tasks as they complete them. This disables the "Claim Reward" button until key tasks are done. -> Justification: Directly gamifies the daily routine and provides a clear path, tackling procrastination by breaking the day down.
+        Report Info: Writing Progress (implied goal) -> Goal: Motivate and track the most critical metric (writing). -> Viz/Method: Bar Chart (Chart.js/Canvas). -> Interaction: Users input their daily word count, and the chart updates dynamically. -> Justification: Visual feedback is a powerful motivator for TDAH. Seeing progress builds momentum.
+        Report Info: Concentration Tips -> Goal: Provide actionable strategies for focus. -> Viz/Method: Accordion-style collapsible sections (HTML/JS). -> Interaction: User clicks to expand and read details. -> Justification: Keeps the main interface clean while making deep-dive information accessible on demand.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .task-item:has(input:checked) { text-decoration: line-through; color: #9ca3af; }
+        .task-item:has(input:checked) .task-icon { color: #22c55e; }
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+        .accordion-button.active + .accordion-content { max-height: 500px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="container mx-auto max-w-5xl p-4 sm:p-6 md:p-8">
+
+        <!-- Header -->
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-slate-900">Painel de Batalha da Dissertação</h1>
+            <p class="text-slate-600 mt-2">Seu centro de comando para a vitória na reta final.</p>
+        </header>
+
+        <!-- Pillars of Strategy -->
+        <section id="pillars" class="mb-10">
+            <h2 class="text-2xl font-bold text-center mb-6 text-slate-900">Os 3 Pilares da Estratégia</h2>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+                    <h3 class="font-bold text-lg text-amber-600 mb-2">1. Escrita Primeiro, Sempre</h3>
+                    <p class="text-sm text-slate-600">A energia mais valiosa do dia é para a tarefa mais difícil: a escrita. Leitura e fichamento vêm depois.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+                    <h3 class="font-bold text-lg text-amber-600 mb-2">2. Blocos de Hiperfoco</h3>
+                    <p class="text-sm text-slate-600">Trabalho profundo com interrupções mínimas. O objetivo é entrar em estado de fluxo e permanecer nele.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+                    <h3 class="font-bold text-lg text-amber-600 mb-2">3. Recompensa Condicionada</h3>
+                    <p class="text-sm text-slate-600">Lazer não é um escape, é uma conquista. O videogame é liberado apenas após o cumprimento das metas.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Dashboard -->
+        <div class="grid lg:grid-cols-3 gap-8">
+            
+            <!-- Left Column: Daily Checklist -->
+            <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                <h2 class="text-2xl font-bold mb-4 text-slate-900">Estação de Batalha: <span id="current-day"></span></h2>
+                <div id="task-list" class="space-y-4">
+                    <!-- Tasks will be injected here by JS -->
+                </div>
+                <div class="mt-8 text-center">
+                    <button id="reward-button" class="bg-slate-400 text-white font-bold py-3 px-6 rounded-lg cursor-not-allowed w-full sm:w-auto" disabled>
+                        &#128274; Bloqueado: Conquiste suas Metas
+                    </button>
+                    <p id="reward-message" class="text-sm text-slate-500 mt-2 hidden">Parabéns! Recompensa desbloqueada para hoje à noite.</p>
+                </div>
+            </div>
+
+            <!-- Right Column: Progress & Rules -->
+            <div class="space-y-8">
+                <!-- Weekly Progress -->
+                <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                    <h2 class="text-2xl font-bold mb-4 text-slate-900">Progresso Semanal</h2>
+                    <p class="text-sm text-slate-600 mb-4">Meta: 2000 palavras. Registre sua produção diária para visualizar sua evolução.</p>
+                    <div class="chart-container relative h-64 w-full max-w-md mx-auto">
+                        <canvas id="progressChart"></canvas>
+                    </div>
+                    <div class="mt-4 flex gap-2">
+                        <input type="number" id="word-count-input" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm" placeholder="Palavras de hoje...">
+                        <button id="add-progress-button" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-md text-sm">Registrar</button>
+                    </div>
+                </div>
+
+                <!-- Rules of Engagement -->
+                <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                    <h2 class="text-2xl font-bold mb-4 text-slate-900">Regras de Combate</h2>
+                    <div id="accordion-container" class="space-y-2">
+                        <!-- Accordion items will be injected here by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentDayEl = document.getElementById('current-day');
+            const taskListEl = document.getElementById('task-list');
+            const rewardButton = document.getElementById('reward-button');
+            const rewardMessage = document.getElementById('reward-message');
+
+            const dayNames = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+            const todayIndex = new Date().getDay();
+            currentDayEl.textContent = dayNames[todayIndex];
+
+            const tasks = [
+                { id: 'task1', time: '7:00 - 8:30', title: 'Rotina de Preparação', details: 'Cuidados pessoais, café, deslocamento para a biblioteca.', isKey: false },
+                { id: 'task2', time: '8:30 - 12:30', title: 'BLOCO 1: ESCRITA PROFUNDA', details: 'Foco total na escrita. Meta de palavras do dia. Sem leituras novas.', isKey: true },
+                { id: 'task3', time: '12:30 - 13:30', title: 'Pausa para Almoço e Cochilo', details: '30 min para almoçar, 30 min para um cochilo estratégico.', isKey: false },
+                { id: 'task4', time: '13:30 - 19:00', title: 'BLOCO 2: LEITURA E FICHAMENTO', details: 'Abastecer o tanque para a próxima escrita. Use a regra dos 5 minutos para começar.', isKey: true },
+                { id: 'task5', time: '19:00 - 20:00', title: 'Pausa e Jantar', details: 'Deslocamento para casa e desconexão total da pesquisa.', isKey: false },
+                { id: 'task6', time: '20:00 - 21:30', title: 'BLOCO 3: PREPARAÇÃO E ORGANIZAÇÃO', details: 'Organizar notas e planejar a escrita do dia seguinte. Trabalho de baixa fricção.', isKey: false },
+                { id: 'task7', time: '21:30 em diante', title: 'RECOMPENSA MERECIDA', details: 'Se os blocos 1 e 2 foram cumpridos, o lazer está liberado!', isKey: false }
+            ];
+
+            const rules = [
+                { title: 'A Biblioteca como "Cabine"', content: 'Celular guardado, sem distrações. Use a presença de outros como motivador (Body Doubling).' },
+                { title: 'A Regra dos 5 Minutos', content: 'Para vencer a inércia pós-almoço, comprometa-se a apenas começar. "Vou só ler o primeiro parágrafo". O resto flui.' },
+                { title: 'Gamificação: A Chave do Jogo', content: 'Recompensa binária: Cumpriu os blocos 1 e 2? Lazer liberado. Não cumpriu? Sem jogos hoje. Seja rígido.' },
+                { title: 'O Bloco Noturno "Modo Fácil"', content: 'Encare o bloco 3 como uma tarefa mecânica e fácil. Apenas organize o material para o "você" de amanhã. Isso diminui a ansiedade.' },
+                { title: 'Gerenciamento de Pausas', content: 'Se precisar parar em um bloco longo, levante, beba água, alongue. Não pegue o celular. O corpo pausa, a mente não se distrai.' }
+            ];
+
+            // Render Daily Tasks
+            taskListEl.innerHTML = tasks.map(task => `
+                <div class="task-item flex items-start p-4 border border-slate-200 rounded-lg bg-slate-50/50">
+                    <div class="flex items-center h-6">
+                         <input id="${task.id}" name="${task.id}" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-amber-600 focus:ring-amber-500" ${task.isKey ? 'data-key-task' : ''}>
+                    </div>
+                    <div class="ml-4 text-sm">
+                        <label for="${task.id}" class="font-bold text-slate-800">${task.title} <span class="font-normal text-slate-500">(${task.time})</span></label>
+                        <p class="text-slate-600">${task.details}</p>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Render Accordion Rules
+            const accordionContainer = document.getElementById('accordion-container');
+            accordionContainer.innerHTML = rules.map((rule, index) => `
+                <div>
+                    <button class="accordion-button w-full text-left font-semibold p-3 bg-slate-100 hover:bg-slate-200 rounded-md flex justify-between items-center transition">
+                        <span>${rule.title}</span>
+                        <span class="transform transition-transform duration-300">&#9662;</span>
+                    </button>
+                    <div class="accordion-content bg-white p-3 rounded-b-md">
+                        <p class="text-sm text-slate-600">${rule.content}</p>
+                    </div>
+                </div>
+            `).join('');
+
+
+            // --- INTERACTIVITY ---
+
+            // Checklist Logic
+            const keyTasks = document.querySelectorAll('[data-key-task]');
+            taskListEl.addEventListener('change', () => {
+                const allKeyTasksDone = [...keyTasks].every(task => task.checked);
+                if (allKeyTasksDone) {
+                    rewardButton.disabled = false;
+                    rewardButton.classList.remove('bg-slate-400', 'cursor-not-allowed');
+                    rewardButton.classList.add('bg-green-600', 'hover:bg-green-700');
+                    rewardButton.innerHTML = '&#127881; Recompensa Desbloqueada! Resgatar';
+                    rewardMessage.classList.remove('hidden');
+                } else {
+                    rewardButton.disabled = true;
+                    rewardButton.classList.add('bg-slate-400', 'cursor-not-allowed');
+                    rewardButton.classList.remove('bg-green-600', 'hover:bg-green-700');
+                    rewardButton.innerHTML = '&#128274; Bloqueado: Conquiste suas Metas';
+                    rewardMessage.classList.add('hidden');
+                }
+            });
+
+            // Accordion Logic
+            document.querySelectorAll('.accordion-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const currentlyActive = document.querySelector('.accordion-button.active');
+                    if (currentlyActive && currentlyActive !== button) {
+                        currentlyActive.classList.remove('active');
+                        currentlyActive.querySelector('span:last-child').style.transform = 'rotate(0deg)';
+                    }
+                    
+                    button.classList.toggle('active');
+                    const icon = button.querySelector('span:last-child');
+                    if (button.classList.contains('active')) {
+                        icon.style.transform = 'rotate(180deg)';
+                    } else {
+                        icon.style.transform = 'rotate(0deg)';
+                    }
+                });
+            });
+
+
+            // --- CHART.JS LOGIC ---
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            const wordCountInput = document.getElementById('word-count-input');
+            const addProgressButton = document.getElementById('add-progress-button');
+            const weekDays = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            
+            // Load data from localStorage or start fresh
+            let weeklyProgress = JSON.parse(localStorage.getItem('weeklyProgress')) || [0, 0, 0, 0, 0, 0];
+
+            const progressChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: weekDays,
+                    datasets: [{
+                        label: 'Palavras Escritas',
+                        data: weeklyProgress,
+                        backgroundColor: 'rgba(217, 119, 6, 0.6)',
+                        borderColor: 'rgba(217, 119, 6, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(100, 116, 139, 0.1)' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.raw} palavras`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            function updateChart() {
+                // todayIndex is 0 for Sun, 6 for Sat. We map it to 0-5 for our chart.
+                const chartIndex = todayIndex === 0 ? 6 : todayIndex - 1;
+                
+                if (chartIndex >= 0 && chartIndex < 6) {
+                    const words = parseInt(wordCountInput.value) || 0;
+                    if (words > 0) {
+                        weeklyProgress[chartIndex] += words;
+                        localStorage.setItem('weeklyProgress', JSON.stringify(weeklyProgress));
+                        progressChart.data.datasets[0].data = weeklyProgress;
+                        progressChart.update();
+                        wordCountInput.value = '';
+                    }
+                } else {
+                    alert("Hoje é domingo! A semana de progresso começa na segunda-feira.");
+                }
+            }
+
+            addProgressButton.addEventListener('click', updateChart);
+            wordCountInput.addEventListener('keypress', (e) => {
+                if(e.key === 'Enter') {
+                    updateChart();
+                }
+            });
+
+            // Clear progress on a new week (Monday)
+            if (todayIndex === 1 && !localStorage.getItem('lastCleared') === new Date().toLocaleDateString()) {
+                localStorage.setItem('weeklyProgress', JSON.stringify([0, 0, 0, 0, 0, 0]));
+                localStorage.setItem('lastCleared', new Date().toLocaleDateString());
+            }
+
+        });
+    </script>
+</body>
+</html>
