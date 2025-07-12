@@ -3,275 +3,542 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel de Controle: Reta Final da Dissertação</title>
+    <title>Painel da Práxis Acadêmica v6.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- Chosen Palette: Slate & Amber -->
-    <!-- Application Structure Plan: A dashboard-style, single-page application. The structure is designed to guide the user through their day chronologically, reinforcing the core principles of the source report. It starts with the non-negotiable "Pillars of Strategy" at the top for constant reinforcement. The main body is a "Daily Battle Station" with an interactive checklist, turning the static plan into an actionable tool. A "Weekly Progress" chart provides visual feedback and motivation. Finally, a "Rules of Engagement" section details the concentration tips as actionable rules. This structure was chosen to transform a passive plan into an active, daily ritual, directly addressing the user's need for structure, focus, and a clear reward system. -->
-    <!-- Visualization & Content Choices: 
-        Report Info: 3 Pillars (Write First, Hyperfocus, Reward) -> Goal: Reinforce Core Strategy -> Viz/Method: Static, high-visibility HTML cards. -> Interaction: None. Constant visibility is the goal. -> Justification: These are the guiding principles and must always be visible.
-        Report Info: Daily Schedule -> Goal: Guide daily tasks, create a sense of accomplishment. -> Viz/Method: Interactive HTML checklist. -> Interaction: Users check off tasks as they complete them. This disables the "Claim Reward" button until key tasks are done. -> Justification: Directly gamifies the daily routine and provides a clear path, tackling procrastination by breaking the day down.
-        Report Info: Writing Progress (implied goal) -> Goal: Motivate and track the most critical metric (writing). -> Viz/Method: Bar Chart (Chart.js/Canvas). -> Interaction: Users input their daily word count, and the chart updates dynamically. -> Justification: Visual feedback is a powerful motivator for TDAH. Seeing progress builds momentum.
-        Report Info: Concentration Tips -> Goal: Provide actionable strategies for focus. -> Viz/Method: Accordion-style collapsible sections (HTML/JS). -> Interaction: User clicks to expand and read details. -> Justification: Keeps the main interface clean while making deep-dive information accessible on demand.
-    -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-        .task-item:has(input:checked) { text-decoration: line-through; color: #9ca3af; }
-        .task-item:has(input:checked) .task-icon { color: #22c55e; }
-        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
-        .accordion-button.active + .accordion-content { max-height: 500px; }
+        body { font-family: 'Inter', sans-serif; background-color: #111827; color: #d1d5db; }
+        .nav-button.active { background-color: #4f46e5; color: #ffffff; }
+        .progress-bar-bg { background-color: #374151; }
+        .progress-bar-fill { background-color: #4f46e5; transition: width 0.5s ease-in-out; }
+        .chapter-progress-bar-fill { background-color: #16a34a; }
+        .task-item:has(input:checked) .task-label { text-decoration: line-through; color: #6b7280; }
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out; }
+        .hidden { display: none; }
+        #achievement-toast { position: fixed; top: -100px; left: 50%; transform: translateX(-50%); background-color: #16a34a; color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 100; transition: top 0.5s ease-in-out; text-align: center; }
+        .delete-btn { opacity: 0.2; transition: opacity 0.2s; }
+        .task-item:hover .delete-btn, .subchapter-title:hover .delete-btn, .chapter-header:hover .delete-btn { opacity: 1; }
+        .focus-panel { transition: opacity 0.3s, transform 0.3s; }
+        .calendar-grid { display: grid; grid-template-rows: repeat(7, 14px); grid-auto-flow: column; gap: 3px; }
+        .calendar-day { width: 14px; height: 14px; background-color: #374151; border-radius: 2px; }
+        .achievement-card.locked { opacity: 0.4; filter: grayscale(80%); }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800">
+<body class="antialiased">
 
-    <div class="container mx-auto max-w-5xl p-4 sm:p-6 md:p-8">
+    <div id="achievement-toast"><h4 id="achievement-title" class="font-bold"></h4><p id="achievement-message" class="text-sm"></p></div>
+    <div id="confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"><div class="bg-gray-800 rounded-lg p-6 shadow-xl max-w-sm mx-auto"><h3 id="modal-title" class="text-lg font-bold text-white">Confirmar Ação</h3><p id="modal-body" class="text-sm text-gray-300 mt-2 mb-4">Você tem certeza de que deseja excluir este item? Esta ação é irreversível.</p><div class="flex justify-end space-x-4"><button id="modal-cancel" class="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 rounded-md hover:bg-gray-600">Cancelar</button><button id="modal-confirm" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">Excluir</button></div></div></div>
+    <div id="focus-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"><div class="bg-gray-800 rounded-lg p-6 shadow-xl w-full max-w-md mx-auto"><h3 class="text-lg font-bold text-white">Compromisso com a Práxis</h3><p class="text-sm text-gray-400 mt-2 mb-4">Defina sua tarefa imediata para esta sessão de foco.</p><div><label for="focus-goal-input" class="block text-sm font-medium text-gray-300">Qual é a sua tarefa imediata, camarada?</label><input type="text" id="focus-goal-input" class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm" placeholder="Ex: Escrever 250 palavras sobre a reificação..."></div><div class="mt-4"><p class="block text-sm font-medium text-gray-300">Qual a duração desta jornada?</p><div class="flex space-x-2 mt-2" id="focus-duration-options"><button data-duration="5400" class="flex-1 px-4 py-2 text-sm font-medium bg-purple-600 text-white rounded-md hover:bg-gray-600">90 min</button><button data-duration="7200" class="flex-1 px-4 py-2 text-sm font-medium bg-gray-700 rounded-md hover:bg-gray-600">120 min</button><button data-duration="10800" class="flex-1 px-4 py-2 text-sm font-medium bg-gray-700 rounded-md hover:bg-gray-600">180 min</button></div></div><div class="mt-4 flex items-center"><input id="focus-fullscreen-checkbox" type="checkbox" class="h-4 w-4 rounded bg-gray-600 border-gray-500 text-purple-500 focus:ring-purple-600"><label for="focus-fullscreen-checkbox" class="ml-2 block text-sm text-gray-300">Ativar Velo da Alienação (Modo Imersivo)</label></div><div class="mt-6 flex justify-end space-x-4"><button id="focus-modal-cancel" class="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 rounded-md hover:bg-gray-600">Cancelar</button><button id="focus-modal-start" class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700">Iniciar Foco</button></div></div></div>
+    <div id="focus-panel" class="hidden fixed bottom-4 right-4 bg-gray-900/80 backdrop-blur-md border border-purple-500/50 rounded-lg p-4 w-80 shadow-2xl opacity-0 transform translate-y-4"><div class="flex items-center justify-between"><div class="flex-grow"><p class="text-xs text-purple-300">Foco Atual:</p><p id="focus-panel-goal" class="text-sm font-semibold text-white truncate"></p></div><div class="ml-4 text-right"><p class="text-xs text-gray-400">Tempo Restante:</p><p id="focus-panel-timer" class="text-2xl font-bold text-white"></p></div></div><div class="w-full bg-gray-700 rounded-full h-1 mt-2"><div id="focus-panel-progress" class="bg-purple-500 h-1 rounded-full" style="width: 100%;"></div></div><button id="focus-panel-stop" class="w-full mt-3 text-center text-xs text-red-400 hover:text-red-300">Abandonar a Práxis (Parar)</button></div>
+    <div id="sound-panel-container" class="fixed bottom-4 left-4 z-40"><button id="sound-panel-toggle" class="w-12 h-12 bg-gray-800 border border-gray-700 rounded-full flex items-center justify-center text-2xl shadow-lg">🎵</button><div id="sound-panel" class="hidden absolute bottom-16 left-0 bg-gray-800/80 backdrop-blur-md border border-gray-700 rounded-lg p-3 space-y-2 w-64"><button data-sound="white-noise" class="sound-btn w-full text-left text-sm p-2 hover:bg-gray-700 rounded-md">Silêncio de Budapeste (Ruído Branco)</button><button data-sound="ocean-waves" class="sound-btn w-full text-left text-sm p-2 hover:bg-gray-700 rounded-md">Dialética da Natureza (Ondas)</button><button data-sound="binaural" class="sound-btn w-full text-left text-sm p-2 hover:bg-gray-700 rounded-md">Foco Proletário (Binaural)</button><button data-sound="stop" class="w-full text-left text-sm p-2 text-red-400 hover:bg-gray-700 rounded-md">Parar</button></div></div>
 
-        <!-- Header -->
-        <header class="text-center mb-10">
-            <h1 class="text-4xl font-bold text-slate-900">Painel de Batalha da Dissertação</h1>
-            <p class="text-slate-600 mt-2">Seu centro de comando para a vitória na reta final.</p>
-        </header>
-
-        <!-- Pillars of Strategy -->
-        <section id="pillars" class="mb-10">
-            <h2 class="text-2xl font-bold text-center mb-6 text-slate-900">Os 3 Pilares da Estratégia</h2>
-            <div class="grid md:grid-cols-3 gap-6">
-                <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
-                    <h3 class="font-bold text-lg text-amber-600 mb-2">1. Escrita Primeiro, Sempre</h3>
-                    <p class="text-sm text-slate-600">A energia mais valiosa do dia é para a tarefa mais difícil: a escrita. Leitura e fichamento vêm depois.</p>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
-                    <h3 class="font-bold text-lg text-amber-600 mb-2">2. Blocos de Hiperfoco</h3>
-                    <p class="text-sm text-slate-600">Trabalho profundo com interrupções mínimas. O objetivo é entrar em estado de fluxo e permanecer nele.</p>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
-                    <h3 class="font-bold text-lg text-amber-600 mb-2">3. Recompensa Condicionada</h3>
-                    <p class="text-sm text-slate-600">Lazer não é um escape, é uma conquista. O videogame é liberado apenas após o cumprimento das metas.</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Main Dashboard -->
-        <div class="grid lg:grid-cols-3 gap-8">
-            
-            <!-- Left Column: Daily Checklist -->
-            <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-md border border-slate-200">
-                <h2 class="text-2xl font-bold mb-4 text-slate-900">Estação de Batalha: <span id="current-day"></span></h2>
-                <div id="task-list" class="space-y-4">
-                    <!-- Tasks will be injected here by JS -->
-                </div>
-                <div class="mt-8 text-center">
-                    <button id="reward-button" class="bg-slate-400 text-white font-bold py-3 px-6 rounded-lg cursor-not-allowed w-full sm:w-auto" disabled>
-                        &#128274; Bloqueado: Conquiste suas Metas
-                    </button>
-                    <p id="reward-message" class="text-sm text-slate-500 mt-2 hidden">Parabéns! Recompensa desbloqueada para hoje à noite.</p>
-                </div>
-            </div>
-
-            <!-- Right Column: Progress & Rules -->
-            <div class="space-y-8">
-                <!-- Weekly Progress -->
-                <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
-                    <h2 class="text-2xl font-bold mb-4 text-slate-900">Progresso Semanal</h2>
-                    <p class="text-sm text-slate-600 mb-4">Meta: 2000 palavras. Registre sua produção diária para visualizar sua evolução.</p>
-                    <div class="chart-container relative h-64 w-full max-w-md mx-auto">
-                        <canvas id="progressChart"></canvas>
-                    </div>
-                    <div class="mt-4 flex gap-2">
-                        <input type="number" id="word-count-input" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm" placeholder="Palavras de hoje...">
-                        <button id="add-progress-button" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-md text-sm">Registrar</button>
-                    </div>
-                </div>
-
-                <!-- Rules of Engagement -->
-                <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
-                    <h2 class="text-2xl font-bold mb-4 text-slate-900">Regras de Combate</h2>
-                    <div id="accordion-container" class="space-y-2">
-                        <!-- Accordion items will be injected here by JS -->
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="container mx-auto max-w-6xl p-4 sm:p-6 md:p-8">
+        <header class="text-center mb-10 flex justify-between items-center"><div class="flex-1"></div><div class="flex-1"><h1 class="text-4xl font-bold text-white">Painel da Práxis Acadêmica</h1><p class="text-gray-400 mt-2">Pela superação da alienação, rumo à totalidade concreta.</p></div><div class="flex-1 flex justify-end"><button id="fullscreen-btn" title="Ativar Modo Imersivo" class="text-2xl text-gray-500 hover:text-white transition">⛶</button></div></header>
+        <nav class="mb-8 flex justify-center bg-gray-800/50 backdrop-blur-sm p-2 rounded-lg border border-gray-700"><div id="nav-container" class="flex flex-wrap justify-center gap-2"><button data-target="praxis-diaria" class="nav-button active px-4 py-2 text-sm font-semibold rounded-md transition">Práxis Diária</button><button data-target="busca-totalidade" class="nav-button px-4 py-2 text-sm font-semibold rounded-md transition">A Busca pela Totalidade</button><button data-target="balanco-consciencia" class="nav-button px-4 py-2 text-sm font-semibold rounded-md transition">Balanço da Consciência</button></div></nav>
+        <main>
+            <section id="praxis-diaria" class="main-section"><div class="grid lg:grid-cols-3 gap-8"><div class="lg:col-span-2 bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700"><h2 class="text-2xl font-bold mb-4 text-white">Frente de Batalha: <span id="current-day"></span></h2><div id="daily-task-list" class="space-y-4"></div><div class="mt-8 pt-6 border-t border-gray-700"><button id="start-focus-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg">Engajar em Foco Total</button></div></div><div class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700"><h2 class="text-2xl font-bold mb-4 text-white">Produção Material</h2><p class="text-sm text-gray-400 mb-4">Registre a produção de palavras para a análise da mais-valia (acadêmica).</p><div class="mt-4 flex gap-2"><input type="number" id="word-count-input" class="w-full border bg-gray-700 border-gray-600 text-white rounded-md px-3 py-2 text-sm" placeholder="Palavras de hoje..."/><button id="add-progress-button" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md text-sm">Registrar</button></div><p class="text-sm text-gray-400 mt-4">Total Acumulado: <span id="total-word-count" class="font-bold text-purple-300">0</span> palavras</p></div></div></section>
+            <section id="busca-totalidade" class="main-section hidden"><div class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700"><h2 class="text-2xl font-bold mb-2 text-white">A Busca pela Totalidade (O Manifesto)</h2><p class="text-gray-400 mb-6">As etapas da revolução. Organize os momentos do processo dialético.</p><div class="mb-8"><div class="flex justify-between items-center mb-1"><span class="text-sm font-medium text-purple-300">Consciência de Si da Dissertação (Progresso Total)</span><span id="total-progress-text" class="text-sm font-medium text-purple-300">0%</span></div><div class="w-full progress-bar-bg rounded-full h-4"><div id="total-progress-bar" class="progress-bar-fill h-4 rounded-full"></div></div></div><div id="chapters-container" class="space-y-4"></div><div class="mt-6 pt-6 border-t border-gray-700"><input type="text" id="new-chapter-input" class="new-item-input bg-gray-700 border border-gray-600 text-sm rounded-md w-full p-2" placeholder="+ Adicionar novo capítulo ou seção..."/></div></div></section>
+            <section id="balanco-consciencia" class="main-section hidden"><div class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700"><h2 class="text-2xl font-bold mb-2 text-white">Balanço da Consciência de Classe (Acadêmica)</h2><p class="text-gray-400 mb-6">Análise da sua práxis histórica para guiar a luta futura.</p><h3 class="font-semibold text-lg text-purple-300 mb-3">Quadro da Práxis Histórica (Último Ano)</h3><div id="progress-calendar" class="calendar-grid p-4 bg-gray-900/50 rounded-md border border-gray-700 overflow-x-auto"></div><h3 class="font-semibold text-lg text-purple-300 mt-8 mb-3">Conquistas da Revolução</h3><div id="achievements-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div></div></section>
+        </main>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const currentDayEl = document.getElementById('current-day');
-            const taskListEl = document.getElementById('task-list');
-            const rewardButton = document.getElementById('reward-button');
-            const rewardMessage = document.getElementById('reward-message');
+    //<![CDATA[
+    document.addEventListener('DOMContentLoaded', function() {
+        let appData;
+        let focusInterval;
+        let audioCtx, oscillator, gainNode;
+        let itemToDelete = null;
+        let selectedDuration = 5400;
 
-            const dayNames = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-            const todayIndex = new Date().getDay();
-            currentDayEl.textContent = dayNames[todayIndex];
+        const defaultData = {
+            totalWords: 0,
+            focusSessionsCompleted: 0,
+            wordCountHistory: {},
+            achievements: {
+                firstTask: false, first1000Words: false, allDaily: false, marathon5days: false, focusMaster10: false,
+                completedChapters: [], completedSubchapters: []
+            },
+            dissertation: [
+                { id: 'ch0', title: 'Introdução', subchapters: [] },
+                { id: 'ch1', title: 'Capítulo 1: Alienação, totalidade e história como categorias centrais do pensamento lukacsiano', subchapters: [
+                    { id: 'sc1-1', title: '1.1: História e consciência de classe como um caminho para Marx...', tasks: [] },
+                    { id: 'sc1-2', title: '1.2: Autocríticas e inflexões: o "tertium datur"...', tasks: [] },
+                    { id: 'sc1-3', title: '1.3: O marxismo como Weltanschauung...', tasks: [] }
+                ]},
+                { id: 'ch2', title: 'Capítulo 2: A formação do pensamento lukacsiano brasileiro', subchapters: [
+                    { id: 'sc2-1', title: '2.1: A descoberta de Lukács e as contradições...', tasks: [] },
+                    { id: 'sc2-2', title: '2.2: O surgimento do “lukacsianismo brasileiro”', tasks: [] },
+                    { id: 'sc2-3', title: '2.3: O lukacsianismo brasileiro em duas vertentes...', tasks: [] },
+                    { id: 'sc2-4', title: '2.4: A luta teórico-ideológica por uma nova política...', tasks: [] }
+                ]},
+                { id: 'ch3', title: 'Capítulo 3: O diálogo com o mestre e a evolução...', subchapters: [
+                    { id: 'sc3-1', title: '3.1: A correspondência como meio de formação...', tasks: [] },
+                    { id: 'sc3-2', title: '3.2: Leandro Konder: alienação, realismo...', tasks: [] },
+                    { id: 'sc3-3', title: '3.3: Carlos Nelson Coutinho: entre o “historicismo”...', tasks: [] }
+                ]},
+                { id: 'ch4', title: 'Considerações finais', subchapters: [] },
+                { id: 'ch5', title: 'Referências', subchapters: [] },
+                { id: 'ch6', title: 'Anexos', subchapters: [] }
+            ],
+            dailyTasks: [
+                { id: 'dt1', title: 'BLOCO 1: ESCRITA (Ação Transformadora)', completed: false },
+                { id: 'dt2', title: 'BLOCO 2: LEITURA (Apropriação da Teoria)', completed: false },
+                { id: 'dt3', title: 'BLOCO 3: ORGANIZAÇÃO (Planejamento da Práxis)', completed: false },
+            ]
+        };
+        
+        const ALL_ACHIEVEMENTS = {
+            general: {
+                firstTask: { title: 'Fragmento Superado!', description: 'Concluiu a primeira tarefa. A totalidade está um passo mais perto.' },
+                first1000Words: { title: 'Crítica à Economia Política (das Palavras)!', description: 'Acumulou 1000 palavras. A base material da sua tese está sendo construída.' },
+                allDaily: { title: 'Emancipação do Lazer!', description: 'A jornada de trabalho diária terminou. O tempo livre é seu por direito!' },
+                marathon5days: { title: 'Vanguarda Proletária!', description: 'Escreveu por 5 dias seguidos. A consistência é a arma da revolução.' },
+                focusMaster10: { title: 'Mestre da Práxis!', description: 'Completou 10 sessões de foco. Sua capacidade de concentração foi elevada.' }
+            },
+            chapters: {
+                ch1: { title: 'A Ontologia do Ser Social!', description: 'Você fundamentou as categorias centrais. A base ontológica está firmemente estabelecida.'},
+                ch2: { title: 'Intelligentsia Brasileira em Formação!', description: 'O percurso da recepção de Lukács no Brasil foi mapeado. Um trabalho de fôlego!'},
+                ch3: { title: 'Diálogo com o Mestre!', description: 'A relação entre os discípulos e o mestre foi desvendada. A teoria se enriquece no intercâmbio.'}
+            },
+            subchapters: {
+                'sc1-1': { title: 'Consciência de Classe Despertada!', msg: 'A reificação foi desvendada e a totalidade histórica se revela.' },
+                'sc1-2': { title: 'Tertium Datur Encontrado!', msg: 'Nem o pântano do irracionalismo, nem a rigidez do dogmatismo. Você achou o caminho da razão dialética.' },
+                'sc1-3': { title: 'Weltanschauung Completa!', msg: 'Estética, ética e ontologia unificadas. O marxismo se revela como uma concepção de mundo coerente.' },
+                'sc2-1': { title: 'O Fantasma de Lukács Ronda o PCB!', msg: 'As contradições da política cultural foram expostas. A luta interna começa.' },
+                'sc2-2': { title: 'Núcleo Partidário Fundado!', msg: 'O "lukacsianismo brasileiro" não é mais um espectro, mas uma força material.' },
+                'sc2-3': { title: 'Rio vs. São Paulo: A Dialética Geográfica!', msg: 'As diferentes vertentes da práxis foram analisadas. A unidade na diversidade se mostra.' },
+                'sc2-4': { title: 'Hegemonia em Disputa!', msg: 'A batalha por uma nova cultura comunista foi travada e documentada.' },
+                'sc3-1': { title: 'Cartas do Cárcere (Intelectual)!', msg: 'A correspondência revelou-se uma ferramenta crucial na luta ideológica.' },
+                'sc3-2': { title: 'O Humanismo Realista de Konder!', msg: 'A busca de Konder por um marxismo autêntico, livre da alienação, foi concluída.' },
+                'sc3-3': { title: 'A Dialética Objetiva de Coutinho!', msg: 'O complexo percurso de Coutinho, superando o historicismo, foi elucidado.' },
+            }
+        };
 
-            const tasks = [
-                { id: 'task1', time: '7:00 - 8:30', title: 'Rotina de Preparação', details: 'Cuidados pessoais, café, deslocamento para a biblioteca.', isKey: false },
-                { id: 'task2', time: '8:30 - 12:30', title: 'BLOCO 1: ESCRITA PROFUNDA', details: 'Foco total na escrita. Meta de palavras do dia. Sem leituras novas.', isKey: true },
-                { id: 'task3', time: '12:30 - 13:30', title: 'Pausa para Almoço e Cochilo', details: '30 min para almoçar, 30 min para um cochilo estratégico.', isKey: false },
-                { id: 'task4', time: '13:30 - 19:00', title: 'BLOCO 2: LEITURA E FICHAMENTO', details: 'Abastecer o tanque para a próxima escrita. Use a regra dos 5 minutos para começar.', isKey: true },
-                { id: 'task5', time: '19:00 - 20:00', title: 'Pausa e Jantar', details: 'Deslocamento para casa e desconexão total da pesquisa.', isKey: false },
-                { id: 'task6', time: '20:00 - 21:30', title: 'BLOCO 3: PREPARAÇÃO E ORGANIZAÇÃO', details: 'Organizar notas e planejar a escrita do dia seguinte. Trabalho de baixa fricção.', isKey: false },
-                { id: 'task7', time: '21:30 em diante', title: 'RECOMPENSA MERECIDA', details: 'Se os blocos 1 e 2 foram cumpridos, o lazer está liberado!', isKey: false }
-            ];
+        const DOMElements = {
+            nav: document.getElementById('nav-container'),
+            sections: document.querySelectorAll('.main-section'),
+            chaptersContainer: document.getElementById('chapters-container'),
+            totalProgressBar: document.getElementById('total-progress-bar'),
+            totalProgressText: document.getElementById('total-progress-text'),
+            dailyTaskList: document.getElementById('daily-task-list'),
+            currentDay: document.getElementById('current-day'),
+            wordInput: document.getElementById('word-count-input'),
+            addWordsBtn: document.getElementById('add-progress-button'),
+            totalWordsEl: document.getElementById('total-word-count'),
+            newChapterInput: document.getElementById('new-chapter-input'),
+            modal: document.getElementById('confirm-modal'),
+            modalConfirm: document.getElementById('modal-confirm'),
+            modalCancel: document.getElementById('modal-cancel'),
+            startFocusBtn: document.getElementById('start-focus-btn'),
+            focusModal: document.getElementById('focus-modal'),
+            focusModalCancel: document.getElementById('focus-modal-cancel'),
+            focusModalStart: document.getElementById('focus-modal-start'),
+            focusDurationOptions: document.getElementById('focus-duration-options'),
+            focusGoalInput: document.getElementById('focus-goal-input'),
+            focusFullscreenCheckbox: document.getElementById('focus-fullscreen-checkbox'),
+            focusPanel: document.getElementById('focus-panel'),
+            focusPanelGoal: document.getElementById('focus-panel-goal'),
+            focusPanelTimer: document.getElementById('focus-panel-timer'),
+            focusPanelProgress: document.getElementById('focus-panel-progress'),
+            focusPanelStop: document.getElementById('focus-panel-stop'),
+            fullscreenBtn: document.getElementById('fullscreen-btn'),
+            soundPanelToggle: document.getElementById('sound-panel-toggle'),
+            soundPanel: document.getElementById('sound-panel'),
+            achievementsContainer: document.getElementById('achievements-container'),
+            progressCalendar: document.getElementById('progress-calendar')
+        };
+        
+        function saveData() { localStorage.setItem('dissertationAppData', JSON.stringify(appData)); }
+        function loadData() {
+            const savedData = localStorage.getItem('dissertationAppData');
+            appData = savedData ? JSON.parse(savedData) : JSON.parse(JSON.stringify(defaultData));
+        }
 
-            const rules = [
-                { title: 'A Biblioteca como "Cabine"', content: 'Celular guardado, sem distrações. Use a presença de outros como motivador (Body Doubling).' },
-                { title: 'A Regra dos 5 Minutos', content: 'Para vencer a inércia pós-almoço, comprometa-se a apenas começar. "Vou só ler o primeiro parágrafo". O resto flui.' },
-                { title: 'Gamificação: A Chave do Jogo', content: 'Recompensa binária: Cumpriu os blocos 1 e 2? Lazer liberado. Não cumpriu? Sem jogos hoje. Seja rígido.' },
-                { title: 'O Bloco Noturno "Modo Fácil"', content: 'Encare o bloco 3 como uma tarefa mecânica e fácil. Apenas organize o material para o "você" de amanhã. Isso diminui a ansiedade.' },
-                { title: 'Gerenciamento de Pausas', content: 'Se precisar parar em um bloco longo, levante, beba água, alongue. Não pegue o celular. O corpo pausa, a mente não se distrai.' }
-            ];
+        function showAchievement(title, message) {
+            const toast = document.getElementById('achievement-toast');
+            toast.querySelector('#achievement-title').textContent = title;
+            toast.querySelector('#achievement-message').textContent = message;
+            toast.style.top = '20px';
+            setTimeout(() => { toast.style.top = '-100px'; }, 5000);
+        }
 
-            // Render Daily Tasks
-            taskListEl.innerHTML = tasks.map(task => `
-                <div class="task-item flex items-start p-4 border border-slate-200 rounded-lg bg-slate-50/50">
-                    <div class="flex items-center h-6">
-                         <input id="${task.id}" name="${task.id}" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-amber-600 focus:ring-amber-500" ${task.isKey ? 'data-key-task' : ''}>
-                    </div>
-                    <div class="ml-4 text-sm">
-                        <label for="${task.id}" class="font-bold text-slate-800">${task.title} <span class="font-normal text-slate-500">(${task.time})</span></label>
-                        <p class="text-slate-600">${task.details}</p>
-                    </div>
-                </div>
-            `).join('');
-            
-            // Render Accordion Rules
-            const accordionContainer = document.getElementById('accordion-container');
-            accordionContainer.innerHTML = rules.map((rule, index) => `
-                <div>
-                    <button class="accordion-button w-full text-left font-semibold p-3 bg-slate-100 hover:bg-slate-200 rounded-md flex justify-between items-center transition">
-                        <span>${rule.title}</span>
-                        <span class="transform transition-transform duration-300">&#9662;</span>
-                    </button>
-                    <div class="accordion-content bg-white p-3 rounded-b-md">
-                        <p class="text-sm text-slate-600">${rule.content}</p>
-                    </div>
-                </div>
-            `).join('');
-
-
-            // --- INTERACTIVITY ---
-
-            // Checklist Logic
-            const keyTasks = document.querySelectorAll('[data-key-task]');
-            taskListEl.addEventListener('change', () => {
-                const allKeyTasksDone = [...keyTasks].every(task => task.checked);
-                if (allKeyTasksDone) {
-                    rewardButton.disabled = false;
-                    rewardButton.classList.remove('bg-slate-400', 'cursor-not-allowed');
-                    rewardButton.classList.add('bg-green-600', 'hover:bg-green-700');
-                    rewardButton.innerHTML = '&#127881; Recompensa Desbloqueada! Resgatar';
-                    rewardMessage.classList.remove('hidden');
-                } else {
-                    rewardButton.disabled = true;
-                    rewardButton.classList.add('bg-slate-400', 'cursor-not-allowed');
-                    rewardButton.classList.remove('bg-green-600', 'hover:bg-green-700');
-                    rewardButton.innerHTML = '&#128274; Bloqueado: Conquiste suas Metas';
-                    rewardMessage.classList.add('hidden');
-                }
-            });
-
-            // Accordion Logic
-            document.querySelectorAll('.accordion-button').forEach(button => {
-                button.addEventListener('click', () => {
-                    const currentlyActive = document.querySelector('.accordion-button.active');
-                    if (currentlyActive && currentlyActive !== button) {
-                        currentlyActive.classList.remove('active');
-                        currentlyActive.querySelector('span:last-child').style.transform = 'rotate(0deg)';
+        function checkAchievements(type, data = {}) {
+            let achievementData = null;
+            switch(type) {
+                case 'FIRST_TASK': if (!appData.achievements.firstTask) { appData.achievements.firstTask = true; achievementData = ALL_ACHIEVEMENTS.general.firstTask; } break;
+                case 'SUBCHAPTER_COMPLETE': if (!appData.achievements.completedSubchapters.includes(data.subchapterId) && ALL_ACHIEVEMENTS.subchapters[data.subchapterId]) { appData.achievements.completedSubchapters.push(data.subchapterId); achievementData = ALL_ACHIEVEMENTS.subchapters[data.subchapterId]; } break;
+                case 'CHAPTER_COMPLETE': if (!appData.achievements.completedChapters.includes(data.chapterId) && ALL_ACHIEVEMENTS.chapters[data.chapterId]) { appData.achievements.completedChapters.push(data.chapterId); achievementData = ALL_ACHIEVEMENTS.chapters[data.chapterId]; } break;
+                case 'WORD_COUNT': if (appData.totalWords >= 1000 && !appData.achievements.first1000Words) { appData.achievements.first1000Words = true; achievementData = ALL_ACHIEVEMENTS.general.first1000Words; } break;
+                case 'DAILY_COMPLETE': if (appData.dailyTasks.every(t => t.completed)) { achievementData = ALL_ACHIEVEMENTS.general.allDaily; } break;
+                case 'FOCUS_SESSION': appData.focusSessionsCompleted = (appData.focusSessionsCompleted || 0) + 1; if (appData.focusSessionsCompleted >= 10 && !appData.achievements.focusMaster10) { appData.achievements.focusMaster10 = true; achievementData = ALL_ACHIEVEMENTS.general.focusMaster10; } break;
+                case 'STREAK': if (!appData.achievements.marathon5days) {
+                    const history = Object.keys(appData.wordCountHistory).sort();
+                    if (history.length >= 5) {
+                        let consecutiveDays = 1;
+                        for (let i = history.length - 1; i > 0; i--) {
+                            const today = new Date(history[i]);
+                            const yesterday = new Date(history[i-1]);
+                            const diffTime = Math.abs(today - yesterday);
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            if (diffDays === 1) { consecutiveDays++; } else { break; }
+                        }
+                        if (consecutiveDays >= 5) { appData.achievements.marathon5days = true; achievementData = ALL_ACHIEVEMENTS.general.marathon5days; }
                     }
-                    
-                    button.classList.toggle('active');
-                    const icon = button.querySelector('span:last-child');
-                    if (button.classList.contains('active')) {
-                        icon.style.transform = 'rotate(180deg)';
-                    } else {
-                        icon.style.transform = 'rotate(0deg)';
+                } break;
+            }
+            if (achievementData) {
+                showAchievement(achievementData.title, achievementData.description || achievementData.msg);
+                renderAchievements();
+                saveData();
+            }
+        }
+
+        function renderAchievements() {
+            const container = DOMElements.achievementsContainer;
+            const allAch = {...ALL_ACHIEVEMENTS.general, ...ALL_ACHIEVEMENTS.chapters};
+            container.innerHTML = Object.entries(allAch).map(([key, value]) => {
+                let isUnlocked = appData.achievements[key];
+                if (key.startsWith('ch')) isUnlocked = appData.achievements.completedChapters.includes(key);
+                
+                return `<div class="achievement-card ${isUnlocked ? '' : 'locked'} bg-gray-900/50 p-4 rounded-lg border border-gray-700 flex items-center space-x-4 transition"><div class="text-3xl">${isUnlocked ? '🏆' : '❓'}</div><div><h4 class="font-bold text-white">${value.title}</h4><p class="text-sm text-gray-400">${value.description}</p></div></div>`;
+            }).join('');
+        }
+
+        function renderCalendar() {
+            const container = DOMElements.progressCalendar;
+            container.innerHTML = '';
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(endDate.getDate() - 365);
+            
+            let currentDate = new Date(startDate);
+            while(currentDate <= endDate) {
+                const dayDiv = document.createElement('div');
+                dayDiv.classList.add('calendar-day');
+                const dateString = currentDate.toISOString().split('T')[0];
+                const count = appData.wordCountHistory[dateString] || 0;
+                
+                let colorClass = 'bg-gray-700';
+                if (count > 0 && count <= 400) colorClass = 'bg-green-900';
+                else if (count > 400 && count <= 800) colorClass = 'bg-green-700';
+                else if (count > 800) colorClass = 'bg-green-500';
+                
+                dayDiv.classList.add(colorClass);
+                dayDiv.title = `${dateString}: ${count} palavras`;
+                container.appendChild(dayDiv);
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+        }
+
+        function updateProgress() {
+            let totalTasks = 0, completedTasks = 0;
+            appData.dissertation.forEach(chapter => {
+                let chapterTotal = 0, chapterCompleted = 0;
+                chapter.subchapters.forEach(sub => {
+                    const subTasks = sub.tasks;
+                    const subTasksCompleted = subTasks.filter(t => t.completed).length;
+                    chapterTotal += subTasks.length;
+                    chapterCompleted += subTasksCompleted;
+                    if (subTasks.length > 0 && subTasksCompleted === subTasks.length) {
+                        checkAchievements('SUBCHAPTER_COMPLETE', { subchapterId: sub.id });
                     }
                 });
+                totalTasks += chapterTotal;
+                completedTasks += chapterCompleted;
+                const chapterProgress = chapterTotal > 0 ? (chapterCompleted / chapterTotal) * 100 : 0;
+                const progressBar = document.querySelector(`#progress-${chapter.id}`);
+                const progressText = document.querySelector(`#progress-text-${chapter.id}`);
+                if (progressBar) progressBar.style.width = `${chapterProgress}%`;
+                if (progressText) progressText.textContent = `${Math.round(chapterProgress)}%`;
+                if (chapterProgress === 100 && chapterTotal > 0) {
+                    checkAchievements('CHAPTER_COMPLETE', { chapterId: chapter.id, chapterTitle: chapter.title });
+                }
             });
+            const totalProgress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+            DOMElements.totalProgressBar.style.width = `${totalProgress}%`;
+            DOMElements.totalProgressText.textContent = `${Math.round(totalProgress)}%`;
+        }
+        
+        function renderDissertationMap() {
+            DOMElements.chaptersContainer.innerHTML = appData.dissertation.map(chapter => `
+                <div class="bg-gray-900/50 border border-gray-700 rounded-lg" data-id="${chapter.id}" data-type="chapter">
+                    <div class="accordion-button w-full p-4 text-left flex justify-between items-center cursor-pointer chapter-header">
+                        <div class="flex-grow"><h3 class="font-bold text-lg text-white editable">${chapter.title}</h3><div class="w-full progress-bar-bg rounded-full h-2.5 mt-2"><div id="progress-${chapter.id}" class="chapter-progress-bar-fill h-2.5 rounded-full"></div></div></div>
+                        <div class="flex items-center ml-4"><span id="progress-text-${chapter.id}" class="text-sm font-medium text-green-300 mr-4"></span><button class="delete-btn text-red-500 hover:text-red-400 mr-4" title="Excluir Capítulo">&#10005;</button><span class="transform transition-transform duration-300 text-gray-400">&#9662;</span></div>
+                    </div>
+                    <div class="accordion-content px-4 pb-4">
+                        <div class="subchapters-list space-y-4 mt-4">
+                        ${chapter.subchapters.map(sub => `
+                            <div class="pl-4 border-l-2 border-gray-700" data-id="${sub.id}" data-type="subchapter">
+                                <div class="flex justify-between items-center subchapter-title"><h4 class="font-semibold text-purple-300 editable flex-grow">${sub.title}</h4><button class="delete-btn text-red-500 hover:text-red-400 ml-2" title="Excluir Subcapítulo">&#10005;</button></div>
+                                <div class="tasks-list mt-2 space-y-2">
+                                    ${sub.tasks.map(task => `<div class="task-item flex items-center" data-id="${task.id}" data-type="task"><input type="checkbox" id="${task.id}" ${task.completed ? 'checked' : ''} class="h-4 w-4 rounded bg-gray-600 border-gray-500 text-purple-500 focus:ring-purple-600"><label for="${task.id}" class="task-label ml-3 text-sm text-gray-300 editable flex-grow">${task.text}</label><button class="delete-btn text-red-500 hover:text-red-400 ml-2" title="Excluir Tarefa">&#10005;</button></div>`).join('')}
+                                </div>
+                                <div class="mt-2"><input type="text" class="new-item-input bg-gray-700 border border-gray-600 text-sm rounded-md w-full p-1" placeholder="+ Adicionar nova tarefa..." data-type="task"/></div>
+                            </div>`).join('')}
+                        </div>
+                         <div class="mt-4 pt-4 border-t border-gray-700"><input type="text" class="new-item-input bg-gray-700 border border-gray-600 text-sm rounded-md w-full p-1" placeholder="+ Adicionar novo subcapítulo..." data-type="subchapter"/></div>
+                    </div>
+                </div>`).join('');
+            updateProgress();
+        }
 
+        function renderDailyPanel() {
+            const dayNames = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+            DOMElements.currentDay.textContent = dayNames[new Date().getDay()];
+            DOMElements.dailyTaskList.innerHTML = appData.dailyTasks.map(task => `<div class="task-item flex items-start p-4 border border-gray-700 rounded-lg bg-gray-900/50"><div class="flex items-center h-6"><input id="${task.id}" type="checkbox" ${task.completed ? 'checked' : ''} class="h-5 w-5 rounded bg-gray-600 border-gray-500 text-purple-500 focus:ring-purple-600"></div><div class="ml-4 text-sm"><label for="${task.id}" class="font-bold text-white">${task.title}</label></div></div>`).join('');
+        }
+        
+        function makeEditable(e) {
+            if (!e.target.classList.contains('editable')) return;
+            const targetEl = e.target;
+            const originalText = targetEl.textContent;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = originalText;
+            input.className = 'bg-gray-600 text-white p-1 rounded-md w-full';
+            targetEl.replaceWith(input);
+            input.focus();
 
-            // --- CHART.JS LOGIC ---
-            const ctx = document.getElementById('progressChart').getContext('2d');
-            const wordCountInput = document.getElementById('word-count-input');
-            const addProgressButton = document.getElementById('add-progress-button');
-            const weekDays = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            const saveEdit = () => {
+                const newText = input.value.trim();
+                if (newText) {
+                    targetEl.textContent = newText;
+                    const itemEl = input.closest('[data-id]');
+                    const { id, type } = itemEl.dataset;
+                    if (type === 'chapter') appData.dissertation.find(c => c.id === id).title = newText;
+                    else if (type === 'subchapter') appData.dissertation.flatMap(c => c.subchapters).find(s => s.id === id).title = newText;
+                    else if (type === 'task') appData.dissertation.flatMap(c => c.subchapters).flatMap(s => s.tasks).find(t => t.id === id).text = newText;
+                    saveData();
+                }
+                input.replaceWith(targetEl);
+            };
+
+            input.addEventListener('blur', saveEdit);
+            input.addEventListener('keypress', (e) => { if (e.key === 'Enter') input.blur(); });
+        }
+        
+        function handleItemCreation(e) {
+            if (!e.target.classList.contains('new-item-input') || e.key !== 'Enter' || e.target.value.trim() === '') return;
             
-            // Load data from localStorage or start fresh
-            let weeklyProgress = JSON.parse(localStorage.getItem('weeklyProgress')) || [0, 0, 0, 0, 0, 0];
+            const type = e.target.dataset.type;
+            const value = e.target.value.trim();
+            
+            if (type === 'chapter') {
+                appData.dissertation.push({ id: 'c' + Date.now(), title: value, subchapters: [] });
+            } else {
+                const parentEl = e.target.closest('[data-id]');
+                const parentId = parentEl.dataset.id;
+                const parentType = parentEl.dataset.type;
 
-            const progressChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: weekDays,
-                    datasets: [{
-                        label: 'Palavras Escritas',
-                        data: weeklyProgress,
-                        backgroundColor: 'rgba(217, 119, 6, 0.6)',
-                        borderColor: 'rgba(217, 119, 6, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: 'rgba(100, 116, 139, 0.1)' }
-                        },
-                        x: {
-                            grid: { display: false }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return `${context.raw} palavras`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            function updateChart() {
-                // todayIndex is 0 for Sun, 6 for Sat. We map it to 0-5 for our chart.
-                const chartIndex = todayIndex === 0 ? 6 : todayIndex - 1;
-                
-                if (chartIndex >= 0 && chartIndex < 6) {
-                    const words = parseInt(wordCountInput.value) || 0;
-                    if (words > 0) {
-                        weeklyProgress[chartIndex] += words;
-                        localStorage.setItem('weeklyProgress', JSON.stringify(weeklyProgress));
-                        progressChart.data.datasets[0].data = weeklyProgress;
-                        progressChart.update();
-                        wordCountInput.value = '';
-                    }
-                } else {
-                    alert("Hoje é domingo! A semana de progresso começa na segunda-feira.");
+                if (type === 'subchapter' && parentType === 'chapter') {
+                    appData.dissertation.find(c => c.id === parentId).subchapters.push({ id: 'sc' + Date.now(), title: value, tasks: [] });
+                } else if (type === 'task' && parentType === 'subchapter') {
+                    appData.dissertation.flatMap(c => c.subchapters).find(s => s.id === parentId).tasks.push({ id: 't' + Date.now(), text: value, completed: false });
                 }
             }
+            e.target.value = '';
+            renderDissertationMap();
+            saveData();
+        }
 
-            addProgressButton.addEventListener('click', updateChart);
-            wordCountInput.addEventListener('keypress', (e) => {
-                if(e.key === 'Enter') {
-                    updateChart();
-                }
-            });
+        function handleDelete(e) {
+            const deleteBtn = e.target.closest('.delete-btn');
+            if (!deleteBtn) return;
+            
+            const itemEl = deleteBtn.closest('[data-id]');
+            const { id, type } = itemEl.dataset;
+            itemToDelete = { id, type };
+            DOMElements.modal.classList.remove('hidden');
+        }
 
-            // Clear progress on a new week (Monday)
-            if (todayIndex === 1 && !localStorage.getItem('lastCleared') === new Date().toLocaleDateString()) {
-                localStorage.setItem('weeklyProgress', JSON.stringify([0, 0, 0, 0, 0, 0]));
-                localStorage.setItem('lastCleared', new Date().toLocaleDateString());
-            }
-
+        DOMElements.modalConfirm.addEventListener('click', () => {
+            if (!itemToDelete) return;
+            const { id, type } = itemToDelete;
+            if (type === 'chapter') appData.dissertation = appData.dissertation.filter(c => c.id !== id);
+            if (type === 'subchapter') appData.dissertation.forEach(c => { c.subchapters = c.subchapters.filter(s => s.id !== id); });
+            if (type === 'task') appData.dissertation.forEach(c => c.subchapters.forEach(s => { s.tasks = s.tasks.filter(t => t.id !== id); }));
+            
+            saveData();
+            renderDissertationMap();
+            DOMElements.modal.classList.add('hidden');
+            itemToDelete = null;
         });
+        
+        DOMElements.modalCancel.addEventListener('click', () => {
+            DOMElements.modal.classList.add('hidden');
+            itemToDelete = null;
+        });
+
+        DOMElements.nav.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const targetId = e.target.dataset.target;
+                DOMElements.sections.forEach(section => section.classList.add('hidden'));
+                document.getElementById(targetId).classList.remove('hidden');
+                DOMElements.nav.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+                e.target.classList.add('active');
+            }
+        });
+
+        DOMElements.chaptersContainer.addEventListener('click', handleDelete);
+        DOMElements.chaptersContainer.addEventListener('dblclick', makeEditable);
+        DOMElements.chaptersContainer.addEventListener('keypress', handleItemCreation);
+        DOMElements.newChapterInput.addEventListener('keypress', handleItemCreation);
+        
+        DOMElements.chaptersContainer.addEventListener('change', (e) => {
+            if (e.target.tagName === 'INPUT' && e.target.type === 'checkbox') {
+                const taskEl = e.target.closest('[data-id]');
+                const task = appData.dissertation.flatMap(c => c.subchapters).flatMap(s => s.tasks).find(t => t.id === taskEl.dataset.id);
+                if (task) {
+                    task.completed = e.target.checked;
+                    checkAchievements('FIRST_TASK');
+                    updateProgress();
+                    saveData();
+                }
+            }
+        });
+        
+        DOMElements.dailyTaskList.addEventListener('change', (e) => {
+             if (e.target.tagName === 'INPUT' && e.target.type === 'checkbox') {
+                const task = appData.dailyTasks.find(t => t.id === e.target.id);
+                if(task) task.completed = e.target.checked;
+                checkAchievements('DAILY_COMPLETE');
+                saveData();
+             }
+        });
+
+        DOMElements.addWordsBtn.addEventListener('click', () => {
+            const words = parseInt(DOMElements.wordInput.value) || 0;
+            if (words > 0) {
+                appData.totalWords = (appData.totalWords || 0) + words;
+                const today = new Date().toISOString().split('T')[0];
+                appData.wordCountHistory[today] = (appData.wordCountHistory[today] || 0) + words;
+                DOMElements.totalWordsEl.textContent = appData.totalWords;
+                DOMElements.wordInput.value = '';
+                checkAchievements('WORD_COUNT');
+                checkAchievements('STREAK');
+                renderCalendar();
+                saveData();
+            }
+        });
+
+        function startFocusTimer(duration, goal) {
+            let totalSeconds = duration;
+            let remainingSeconds = totalSeconds;
+            
+            DOMElements.focusPanelGoal.textContent = goal;
+            DOMElements.focusPanel.classList.remove('hidden');
+            setTimeout(() => { DOMElements.focusPanel.classList.remove('opacity-0', 'translate-y-4'); }, 10);
+
+            focusInterval = setInterval(() => {
+                remainingSeconds--;
+                const minutes = Math.floor(remainingSeconds / 60);
+                const seconds = remainingSeconds % 60;
+                DOMElements.focusPanelTimer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                const progress = (remainingSeconds / totalSeconds) * 100;
+                DOMElements.focusPanelProgress.style.width = `${progress}%`;
+
+                if (remainingSeconds <= 0) {
+                    stopFocusTimer(true);
+                }
+            }, 1000);
+        }
+
+        function stopFocusTimer(completed = false) {
+            clearInterval(focusInterval);
+            DOMElements.focusPanel.classList.add('opacity-0', 'translate-y-4');
+            setTimeout(() => DOMElements.focusPanel.classList.add('hidden'), 300);
+            if (completed) {
+                if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                checkAchievements('FOCUS_SESSION');
+            }
+        }
+
+        DOMElements.startFocusBtn.addEventListener('click', () => DOMElements.focusModal.classList.remove('hidden'));
+        DOMElements.focusModalCancel.addEventListener('click', () => DOMElements.focusModal.classList.add('hidden'));
+        DOMElements.focusDurationOptions.addEventListener('click', (e) => {
+            if(e.target.tagName === 'BUTTON') {
+                selectedDuration = parseInt(e.target.dataset.duration);
+                DOMElements.focusDurationOptions.querySelectorAll('button').forEach(btn => {
+                    btn.classList.remove('bg-purple-600', 'text-white');
+                    btn.classList.add('bg-gray-700');
+                });
+                e.target.classList.add('bg-purple-600', 'text-white');
+                e.target.classList.remove('bg-gray-700');
+            }
+        });
+        DOMElements.focusModalStart.addEventListener('click', () => {
+            const goal = DOMElements.focusGoalInput.value.trim();
+            if (goal) {
+                if (DOMElements.focusFullscreenCheckbox.checked) {
+                    DOMElements.fullscreenBtn.click();
+                }
+                startFocusTimer(selectedDuration, goal);
+                DOMElements.focusModal.classList.add('hidden');
+                DOMElements.focusGoalInput.value = '';
+            } else {
+                alert('É preciso definir uma tarefa imediata para iniciar a práxis focada.');
+            }
+        });
+        DOMElements.focusPanelStop.addEventListener('click', () => stopFocusTimer(false));
+
+        DOMElements.fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => console.error(err));
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        });
+        
+        function stopSound() {
+            if (oscillator) {
+                oscillator.stop();
+                oscillator = null;
+            }
+            if (gainNode) {
+                gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.04);
+                gainNode = null;
+            }
+        }
+
+        function playSound(soundType) {
+            stopSound();
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Implementação dos sons (white-noise, ocean-waves, binaural)
+        }
+
+        DOMElements.soundPanelToggle.addEventListener('click', () => DOMElements.soundPanel.classList.toggle('hidden'));
+        DOMElements.soundPanel.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const soundType = e.target.dataset.sound;
+                if (soundType === 'stop') {
+                    stopSound();
+                } else {
+                    playSound(soundType);
+                }
+            }
+        });
+        
+        function init() {
+            loadData();
+            renderDailyPanel();
+            renderDissertationMap();
+            renderAchievements();
+            renderCalendar();
+            DOMElements.totalWordsEl.textContent = appData.totalWords || 0;
+            const today = new Date();
+            if (today.getHours() < 5) { // Reset daily tasks/achievements early in the morning
+                appData.dailyTasks.forEach(t => t.completed = false);
+                saveData();
+            }
+        }
+        
+        init();
+    });
+    //]]>
     </script>
 </body>
 </html>
