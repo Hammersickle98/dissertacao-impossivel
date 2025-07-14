@@ -1,671 +1,914 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel da Práxis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* * Paleta de Cores com Modo Claro/Escuro
-         * O padrão é o Modo Escuro. A classe .light-mode no body sobrescreve as variáveis.
-        */
+        /* Estilos para a fonte Inter e cores temáticas */
+        body { font-family: 'Inter', sans-serif; }
         :root {
-            --cor-primaria: #2ecc71; /* Verde Principal */
-            --cor-bonus: #9b59b6;   /* Roxo Bônus */
-            --cor-conquista: #f1c40f; /* Dourado Conquista */
-            --cor-erro: #e74c3c;    /* Vermelho para alertas/exclusão */
+            --color-primary-light: #10B981; /* Verde */
+            --color-secondary-light: #8B5CF6; /* Roxo */
+            --color-primary-dark: #34D399;
+            --color-secondary-dark: #A78BFA;
+        }
+        .bg-primary { background-color: var(--color-primary-light); }
+        .text-primary { color: var(--color-primary-light); }
+        .border-primary { border-color: var(--color-primary-light); }
+        .bg-secondary { background-color: var(--color-secondary-light); }
+        .text-secondary { color: var(--color-secondary-light); }
+        .dark .bg-primary { background-color: var(--color-primary-dark); }
+        .dark .text-primary { color: var(--color-primary-dark); }
+        .dark .border-primary { border-color: var(--color-primary-dark); }
+        .dark .bg-secondary { background-color: var(--color-secondary-dark); }
+        .dark .text-secondary { color: var(--color-secondary-dark); }
 
-            /* Modo Escuro (Padrão) */
-            --cor-fundo: #1c1e22;
-            --cor-texto: #e0e2e8;
-            --cor-fundo-card: #282a30;
-            --cor-borda-fraca: #3a3d44;
-            --cor-texto-fraco: #bdc3c7;
+        /* Animação para notificações */
+        @keyframes slideInDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
-
-        body.light-mode {
-            --cor-fundo: #f4f6f8;
-            --cor-texto: #1c1e22;
-            --cor-fundo-card: #ffffff;
-            --cor-borda-fraca: #dfe4ea;
-            --cor-texto-fraco: #57606f;
+        @keyframes slideOutUp {
+            from { transform: translateY(0); opacity: 1; }
+            to { transform: translateY(-100%); opacity: 0; }
         }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--cor-fundo);
-            color: var(--cor-texto);
-            margin: 0;
-            padding: 0;
-            overscroll-behavior-y: contain;
-            transition: background-color 0.3s, color 0.3s;
-        }
-        .container {
-            padding: 15px;
-            padding-bottom: 80px; /* Espaço para a navegação fixa */
-        }
-        h1, h2, h3 {
-            color: var(--cor-primaria);
-            border-bottom: 1px solid var(--cor-borda-fraca);
-            padding-bottom: 5px;
-            font-weight: 500;
-        }
-
-        /* Navegação */
-        .nav-bar {
-            display: flex;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: var(--cor-fundo-card);
-            border-top: 1px solid var(--cor-borda-fraca);
-        }
-        .nav-button {
-            flex: 1;
-            padding: 15px 5px;
-            text-align: center;
-            background: none;
-            border: none;
-            color: var(--cor-texto);
-            font-size: 14px;
-            cursor: pointer;
-            border-top: 3px solid transparent;
-            transition: background-color 0.3s;
-        }
-        .nav-button.active {
-            color: var(--cor-primaria);
-            border-top: 3px solid var(--cor-primaria);
-        }
-
-        /* Conteúdo das Abas */
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
-        /* Estilos Comuns */
-        .card {
-            background-color: var(--cor-fundo-card);
-            border: 1px solid var(--cor-borda-fraca);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-            transition: background-color 0.3s, border-color 0.3s;
-        }
-        .card-title { margin-top: 0; font-size: 1.2em; }
-        .btn-salvar {
-            display: block; width: 100%; padding: 15px; font-size: 1.1em;
-            font-weight: bold; color: white; background-color: var(--cor-primaria);
-            border: none; border-radius: 5px; cursor: pointer; margin-top: 20px;
-        }
-        input[type="number"], input[type="text"] {
-            width: calc(100% - 22px); padding: 10px;
-            background-color: var(--cor-fundo); border: 1px solid var(--cor-borda-fraca);
-            color: var(--cor-texto); border-radius: 4px; font-size: 1em;
-        }
-        .btn-toggle-theme {
-            display: block; width: 100%; padding: 10px; margin-bottom: 15px;
-            background-color: var(--cor-fundo-card); border: 1px solid var(--cor-borda-fraca);
-            color: var(--cor-texto); border-radius: 5px; cursor: pointer;
-        }
+        .notification-enter { animation: slideInDown 0.5s ease-out forwards; }
+        .notification-exit { animation: slideOutUp 0.5s ease-in forwards; }
         
-        /* Aba 1: Práxis Diária */
-        .task-block { border-left: 4px solid var(--cor-primaria); }
-        .task-block.bonus { border-left: 4px solid var(--cor-bonus); }
-        .task-block label { display: flex; align-items: center; font-size: 1.1em; }
-        .task-block input[type="checkbox"] { width: 20px; height: 20px; margin-right: 10px; }
-        .task-desc { font-size: 0.8em; color: var(--cor-texto-fraco); margin-left: 30px; }
-        .btn-opcional {
-            display: block; width: 100%; padding: 12px;
-            background-color: var(--cor-bonus); color: white;
-            border: none; border-radius: 5px; cursor: pointer;
-        }
-
-        /* Aba 2: A Busca pela Totalidade */
-        .dissertacao-item {
-            background-color: var(--cor-fundo);
-            margin-bottom: 8px; padding: 10px; border-radius: 4px;
-            display: flex; align-items: center; justify-content: space-between;
-        }
-        .dissertacao-item.subcapitulo { margin-left: 20px; }
-        .item-titulo { flex-grow: 1; cursor: pointer; }
-        .item-actions { display: flex; align-items: center; gap: 10px; }
-        .btn-concluir {
-            padding: 5px 10px; font-size: 0.8em;
-            background-color: var(--cor-primaria); color: white; 
-            border: none; border-radius: 4px; cursor: pointer;
-        }
-        .btn-concluir.concluido { background-color: var(--cor-texto-fraco); text-decoration: line-through; }
-        .btn-delete { color: var(--cor-erro); cursor: pointer; font-size: 1.2em; }
-        .btn-add {
-            padding: 8px 12px; background-color: var(--cor-primaria);
-            color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px;
-        }
-        .progress-bar-container {
-            width: 100%; background-color: var(--cor-borda-fraca);
-            border-radius: 5px; margin: 5px 0 15px 0;
-        }
-        .progress-bar {
-            width: 0%; height: 12px; background-color: var(--cor-primaria);
-            border-radius: 5px; transition: width 0.5s ease-in-out; text-align: center;
-            color: white; font-size: 0.7em; line-height: 12px;
-        }
-
-        /* Aba 3: Balanço Histórico */
-        .semana-grid {
-            display: grid; grid-template-columns: repeat(7, 1fr);
-            gap: 5px; text-align: center;
-        }
-        .dia-header { font-size: 0.8em; margin-bottom: 5px; color: var(--cor-texto-fraco); }
-        .dia-status {
-            width: 100%; padding-top: 100%; /* Aspect ratio 1:1 */
-            position: relative; background-color: var(--cor-borda-fraca);
-            border-radius: 4px;
-        }
-        .dia-status-inner {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            display: flex; flex-direction: column; justify-content: space-around; padding: 3px;
-        }
-        .bloco-status { height: 25%; width: 100%; border-radius: 2px; }
-        .bloco-status.concluido-main { background-color: var(--cor-primaria); }
-        .bloco-status.concluido-bonus { background-color: var(--cor-bonus); }
-
-        /* Conquistas */
-        .conquistas-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-            gap: 15px; text-align: center;
-        }
-        .conquista { cursor: pointer; }
-        .conquista-icone {
-            font-size: 3em; filter: grayscale(1); opacity: 0.5; transition: all 0.3s;
-        }
-        .conquista.desbloqueada .conquista-icone { filter: grayscale(0); opacity: 1; color: var(--cor-conquista); }
-        .conquista-nome { font-size: 0.8em; margin-top: 5px; }
-
-        /* Notificações */
-        #notification-container {
-            position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
-            background-color: var(--cor-conquista); color: #1c1c1e;
-            padding: 15px 25px; border-radius: 0 0 10px 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3); z-index: 1000;
-            transition: top 0.5s ease-in-out; text-align: center; font-weight: bold;
-        }
-        #notification-container.show { top: 0; }
+        /* Estilo para scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        .dark ::-webkit-scrollbar-track { background: #2d3748; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px;}
+        .dark ::-webkit-scrollbar-thumb { background: #555; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        .dark ::-webkit-scrollbar-thumb:hover { background: #777; }
     </style>
 </head>
-<body>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
 
-    <div id="app">
-        <div id="tab-praxis" class="tab-content active">
-            <div class="container">
-                <h1>Práxis Diária</h1>
-                <button id="theme-toggle-btn" class="btn-toggle-theme">Alternar Tema</button>
-                <div id="praxis-conteudo"></div>
-                <div class="card">
-                    <h3 class="card-title">Produção Material</h3>
-                    <input type="number" id="palavras-dia" placeholder="Palavras escritas hoje">
-                    <p>Total Acumulado: <strong id="total-palavras">0</strong> palavras</p>
-                </div>
-                <button id="salvar-praxis" class="btn-salvar">Salvar Práxis do Dia</button>
+    <!-- Container Principal -->
+    <div id="app-container" class="max-w-4xl mx-auto p-4 pb-24 min-h-screen">
+
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl font-bold text-primary">Painel da Práxis</h1>
+            <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                <!-- Ícone de Lua/Sol -->
+                <svg id="theme-icon-light" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                <svg id="theme-icon-dark" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+            </button>
+        </header>
+        
+        <!-- Abas de Conteúdo -->
+        <main>
+            <!-- Aba 1: Práxis Diária -->
+            <div id="tab-praxis" class="space-y-6">
+                <!-- Conteúdo gerado por JS -->
             </div>
-        </div>
 
-        <div id="tab-totalidade" class="tab-content">
-            <div class="container">
-                <h1>A Busca pela Totalidade</h1>
-                <h3>Progresso Total da Dissertação</h3>
-                <div class="progress-bar-container">
-                    <div id="progresso-total-barra" class="progress-bar"></div>
+            <!-- Aba 2: A Busca pela Totalidade -->
+            <div id="tab-totalidade" class="hidden space-y-6">
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                    <h2 class="text-xl font-bold mb-2">A Busca pela Totalidade</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">A estrutura da dissertação é o mapa para um todo coerente. Conquiste cada parte.</p>
+                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 mb-4">
+                        <div id="total-progress-bar" class="bg-primary h-4 rounded-full transition-all duration-500" style="width: 0%;"></div>
+                    </div>
+                    <div id="dissertation-structure" class="space-y-2">
+                        <!-- Estrutura gerada por JS -->
+                    </div>
+                    <button id="save-totalidade-btn" class="mt-6 w-full bg-primary text-white font-bold py-2 px-4 rounded-lg hover:opacity-90 transition-opacity">
+                        Salvar Progresso e Consolidar a Luta
+                    </button>
                 </div>
-                <div id="dissertacao-estrutura"></div>
-                 <div style="text-align: center; margin-top: 20px;">
-                    <button id="add-capitulo" class="btn-add">Adicionar Capítulo</button>
-                </div>
-                <button id="salvar-totalidade" class="btn-salvar">Salvar Progresso Estrutural</button>
             </div>
-        </div>
 
-        <div id="tab-balanco" class="tab-content">
-            <div class="container">
-                <h1>Balanço Histórico</h1>
-                <div class="card">
-                    <h3 class="card-title">Registro Semanal da Luta</h3>
-                    <div class="semana-grid">
-                        <span class="dia-header">Seg</span><span class="dia-header">Ter</span><span class="dia-header">Qua</span><span class="dia-header">Qui</span><span class="dia-header">Sex</span><span class="dia-header">Sáb</span><span class="dia-header">Dom</span>
-                        <div id="dia-1" class="dia-status"><div class="dia-status-inner"></div></div>
-                        <div id="dia-2" class="dia-status"><div class="dia-status-inner"></div></div>
-                        <div id="dia-3" class="dia-status"><div class="dia-status-inner"></div></div>
-                        <div id="dia-4" class="dia-status"><div class="dia-status-inner"></div></div>
-                        <div id="dia-5" class="dia-status"><div class="dia-status-inner"></div></div>
-                        <div id="dia-6" class="dia-status"><div class="dia-status-inner"></div></div>
-                        <div id="dia-0" class="dia-status"><div class="dia-status-inner"></div></div>
+            <!-- Aba 3: Balanço Histórico -->
+            <div id="tab-balanco" class="hidden space-y-6">
+                 <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                    <h2 class="text-xl font-bold mb-2">Balanço Histórico da Luta</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Analise seus avanços, entenda as contradições e planeje os próximos passos.</p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- Registro Semanal -->
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                        <h3 class="font-bold mb-4">Registro Semanal da Práxis</h3>
+                        <div id="weekly-record" class="grid grid-cols-7 gap-2 text-center text-xs">
+                            <!-- Dias da semana gerados por JS -->
+                        </div>
+                    </div>
+
+                    <!-- Pontuação -->
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                        <h3 class="font-bold mb-4">Sistema de Pontuação</h3>
+                        <div class="flex justify-around text-center">
+                            <div>
+                                <p class="text-gray-500 dark:text-gray-400">Pontos do Dia</p>
+                                <p id="score-today" class="text-2xl font-bold text-primary">0</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-500 dark:text-gray-400">Total da Semana</p>
+                                <p id="score-week" class="text-2xl font-bold text-secondary">0</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="card">
-                    <h3 class="card-title">Sistema de Pontuação</h3>
-                    <p>Pontos do Dia: <strong id="pontos-dia">0</strong></p>
-                    <p>Total Semanal: <strong id="pontos-semana">0</strong></p>
+
+                <!-- Gráfico de Palavras -->
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                    <h3 class="font-bold mb-4">Evolução da Produção Material (Palavras)</h3>
+                    <canvas id="word-count-chart"></canvas>
                 </div>
-                <div class="card">
-                    <h3 class="card-title">Gráfico de Acumulação de Palavras</h3>
-                    <div id="chart-container">
-                        <canvas id="palavras-chart"></canvas>
+
+                <!-- Painel de Conquistas -->
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                    <h3 class="font-bold mb-4">Mural de Troféus da Jornada</h3>
+                    <div id="achievements-gallery" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        <!-- Conquistas geradas por JS -->
                     </div>
                 </div>
-                <div class="card">
-                    <h3 class="card-title">Painel de Conquistas</h3>
-                    <div id="conquistas-painel" class="conquistas-grid"></div>
-                </div>
             </div>
-        </div>
+        </main>
     </div>
 
-    <nav class="nav-bar">
-        <button class="nav-button active" data-tab="tab-praxis">Práxis Diária</button>
-        <button class="nav-button" data-tab="tab-totalidade">A Totalidade</button>
-        <button class="nav-button" data-tab="tab-balanco">Balanço Histórico</button>
+    <!-- Barra de Navegação Fixa -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg">
+        <div class="max-w-4xl mx-auto flex justify-around">
+            <button data-tab="praxis" class="nav-btn flex-1 p-3 text-center text-primary border-t-4 border-primary">
+                <span class="text-xs sm:text-sm">Práxis Diária</span>
+            </button>
+            <button data-tab="totalidade" class="nav-btn flex-1 p-3 text-center text-gray-500 dark:text-gray-400 border-t-4 border-transparent">
+                <span class="text-xs sm:text-sm">Totalidade</span>
+            </button>
+            <button data-tab="balanco" class="nav-btn flex-1 p-3 text-center text-gray-500 dark:text-gray-400 border-t-4 border-transparent">
+                <span class="text-xs sm:text-sm">Balanço</span>
+            </button>
+        </div>
     </nav>
     
-    <div id="notification-container">
-        <p id="notification-text"></p>
+    <!-- Container de Notificações -->
+    <div id="notification-container" class="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-md p-4 z-50">
+        <!-- Notificações geradas por JS -->
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Objeto principal de dados do App
-        let appData = {};
-
-        // --- CÓDIGO JAVASCRIPT ---
-        // (O código JS permanece quase idêntico ao anterior, com adições para o tema)
-        // A lógica principal do app não foi alterada.
-        
-        const defaultDissertacao = {
-            titulo: "ALIENAÇÃO, TOTALIDADE E HISTÓRIA: A RECEPÇÃO DE GYÖRGY LUKÁCS NO BRASIL A PARTIR DE LEANDRO KONDER E CARLOS NELSON COUTINHO (1961-1972)",
-            capitulos: [
-                { id: 1, titulo: "Introdução", concluido: false, subcapitulos: [] },
-                { id: 2, titulo: "Capítulo 1: Alienação, totalidade e história...", concluido: false, subcapitulos: [
-                    { id: 21, titulo: "Subcapítulo 1.1: História e consciência de classe...", concluido: false },
-                    { id: 22, titulo: "Subcapítulo 1.2: Autocríticas e inflexões...", concluido: false },
-                    { id: 23, titulo: "Subcapítulo 1.3: O marxismo como Weltanschauung...", concluido: false }
-                ]},
-                { id: 3, titulo: "Capítulo 2: A formação do pensamento...", concluido: false, subcapitulos: [
-                    { id: 31, titulo: "Subcapítulo 2.1: A descoberta de Lukács...", concluido: false },
-                    { id: 32, titulo: "Subcapítulo 2.2: O surgimento do “lukacsianismo brasileiro”", concluido: false },
-                    { id: 33, titulo: "Subcapítulo 2.3: O lukacsianismo brasileiro em duas vertentes...", concluido: false },
-                    { id: 34, titulo: "Subcapítulo 2.4: A luta teórico-ideológica...", concluido: false }
-                ]},
-                { id: 4, titulo: "Capítulo 3: O diálogo com o mestre...", concluido: false, subcapitulos: [
-                    { id: 41, titulo: "Subcapítulo 3.1: A correspondência como meio de formação...", concluido: false },
-                    { id: 42, titulo: "Subcapítulo 3.2: Leandro Konder: alienação, realismo...", concluido: false },
-                    { id: 43, titulo: "Subcapítulo 3.3: Carlos Nelson Coutinho: entre o “historicismo”...", concluido: false }
-                ]},
-                { id: 5, titulo: "Considerações finais", concluido: false, subcapitulos: [] },
-                { id: 6, titulo: "Referências", concluido: false, subcapitulos: [] },
-                { id: 7, titulo: "Anexos", concluido: false, subcapitulos: [] }
-            ]
-        };
-
-        const conquistasDef = [
-            { id: 'c01', nome: 'Início da Práxis', desc: 'Concluir a primeira tarefa diária.', desbloqueada: false, check: () => countCompletedTasksToday() > 0 },
-            { id: 'c02', nome: 'Consciência em Si', desc: 'Escrever as primeiras 1000 palavras.', desbloqueada: false, check: () => appData.progresso.totalPalavras >= 1000 },
-            { id: 'c03', nome: 'Semana Produtiva', desc: 'Completar tarefas em 5 dias da semana.', desbloqueada: false, check: () => Object.values(appData.progresso.semana).filter(d => d.tarefas && d.tarefas.length > 0).length >= 5 },
-            { id: 'c04', nome: 'Pontuação de Luta', desc: 'Alcançar 50 pontos em uma semana.', desbloqueada: false, check: () => calculatePontosSemana() >= 50 },
-            { id: 'c05', nome: 'Totalidade Conquistada', desc: 'Concluir o primeiro capítulo.', desbloqueada: false, check: () => appData.dissertacao.capitulos.some(c => c.concluido) },
-            { id: 'c06', nome: 'O Alicerce', desc: 'Concluir a Introdução.', desbloqueada: false, check: () => appData.dissertacao.capitulos[0].concluido },
-            { id: 'c07', nome: 'Consciência para Si', desc: 'Escrever 10.000 palavras.', desbloqueada: false, check: () => appData.progresso.totalPalavras >= 10000 },
-            { id: 'c08', nome: 'Militante Disciplinado', desc: 'Alcançar 100 pontos em uma semana.', desbloqueada: false, check: () => calculatePontosSemana() >= 100 },
-            { id: 'c09', nome: 'O Fim da Jornada', desc: 'Concluir todos os capítulos da dissertação.', desbloqueada: false, check: () => isDissertacaoCompleta() },
-        ];
-
-        let notificationQueue = [];
-        let isNotifying = false;
-
-        function init() {
-            loadTheme();
-            loadData();
-            setupEventListeners();
-            renderAll();
-        }
-
-        function loadTheme() {
-            const savedTheme = localStorage.getItem('praxisTheme');
-            if (savedTheme === 'light') {
-                document.body.classList.add('light-mode');
-            }
-        }
-
-        function loadData() {
-            const savedData = localStorage.getItem('painelPraxisData');
-            if (savedData) {
-                appData = JSON.parse(savedData);
-                appData.conquistas = mergeConquistas(appData.conquistas, conquistasDef);
-            } else {
-                appData = {
-                    dissertacao: JSON.parse(JSON.stringify(defaultDissertacao)),
-                    progresso: {
-                        totalPalavras: 0,
-                        historicoPalavras: [],
-                        semana: { 1:{}, 2:{}, 3:{}, 4:{}, 5:{}, 6:{}, 0:{} }
-                    },
-                    conquistas: JSON.parse(JSON.stringify(conquistasDef)),
-                    lastWeekReset: getWeekNumber(new Date())
-                };
-            }
-            checkWeekReset();
-        }
-        
-        function mergeConquistas(saved, defaults) {
-            if (!saved) return defaults;
-            return defaults.map(def => {
-                const savedConquista = saved.find(s => s.id === def.id);
-                return savedConquista ? { ...def, desbloqueada: savedConquista.desbloqueada } : def;
-            });
-        }
-        
-        function getWeekNumber(d) {
-            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
-            var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-            return d.getUTCFullYear() + '-' + Math.ceil((((d - yearStart) / 86400000) + 1)/7);
-        }
-
-        function checkWeekReset() {
-            const currentWeek = getWeekNumber(new Date());
-            if (appData.lastWeekReset !== currentWeek) {
-                appData.progresso.semana = { 1:{}, 2:{}, 3:{}, 4:{}, 5:{}, 6:{}, 0:{} };
-                appData.lastWeekReset = currentWeek;
-                saveData();
-            }
-        }
-
-        function saveData() {
-            localStorage.setItem('painelPraxisData', JSON.stringify(appData));
-        }
-        
-        function setupEventListeners() {
-            document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
-
-            document.querySelectorAll('.nav-button').forEach(button => {
-                button.addEventListener('click', () => {
-                    document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-                    button.classList.add('active');
-                    document.getElementById(button.dataset.tab).classList.add('active');
-                    if (button.dataset.tab === 'tab-balanco') renderPalavrasChart();
-                });
-            });
-
-            document.getElementById('salvar-praxis').addEventListener('click', handlePraxisSave);
-            document.getElementById('salvar-totalidade').addEventListener('click', handleTotalidadeSave);
-            document.getElementById('add-capitulo').addEventListener('click', () => addDissertacaoItem(null));
-        }
-
-        function toggleTheme() {
-            document.body.classList.toggle('light-mode');
-            const currentTheme = document.body.classList.contains('light-mode') ? 'light' : 'dark';
-            localStorage.setItem('praxisTheme', currentTheme);
-            renderPalavrasChart(); // Re-renderiza o gráfico com as cores do novo tema
-        }
-
-        function renderAll() {
-            renderPraxisDiaria();
-            renderTotalidade();
-            renderBalanco();
-        }
-
-        function renderPraxisDiaria() {
-            const praxisConteudo = document.getElementById('praxis-conteudo');
-            const hoje = new Date();
-            const diaSemana = hoje.getDay();
-            let html = '';
-            const tarefasSalvas = appData.progresso.semana[diaSemana]?.tarefas || [];
-
-            if (diaSemana >= 1 && diaSemana <= 5) {
-                html += createTaskBlock('escrita', 'Escrita', 'Foco total na produção de texto.', 10, tarefasSalvas.includes('escrita'));
-                html += createTaskBlock('leitura', 'Leitura', 'Leitura e fichamento de bibliografia.', 5, tarefasSalvas.includes('leitura'));
-                html += createTaskBlock('organizacao', 'Organização', 'Revisar notas, organizar arquivos, etc.', 3, tarefasSalvas.includes('organizacao'));
-            } else if (diaSemana === 6) {
-                html += createTaskBlock('revisao', 'Revisão Semanal', 'Revisar o que foi produzido na semana.', 8, tarefasSalvas.includes('revisao'), true);
-                html += createTaskBlock('planejamento', 'Planejamento Leve', 'Planejar as metas da próxima semana.', 4, tarefasSalvas.includes('planejamento'));
-            } else {
-                html = '<div class="card"><p>Domingo é dia de descanso. A práxis também envolve a recuperação das forças para a luta!</p><button id="btn-avancar" class="btn-opcional">Preciso Avançar</button></div>';
-            }
-            
-            praxisConteudo.innerHTML = html;
-
-            if (document.getElementById('btn-avancar')) {
-                document.getElementById('btn-avancar').addEventListener('click', () => {
-                    let bonusHtml = createTaskBlock('bonus-domingo', 'Arrancada Final', 'Bloco de alta intensidade para avançar.', 15, tarefasSalvas.includes('bonus-domingo'), true);
-                    praxisConteudo.innerHTML = bonusHtml;
-                });
-            }
-
-            document.getElementById('total-palavras').textContent = appData.progresso.totalPalavras;
-            document.getElementById('palavras-dia').value = '';
-        }
-
-        function createTaskBlock(id, titulo, desc, pontos, checked, isBonus = false) {
-            return `
-                <div class="card task-block ${isBonus ? 'bonus' : ''}">
-                    <label>
-                        <input type="checkbox" data-task-id="${id}" data-pontos="${pontos}" ${checked ? 'checked' : ''}>
-                        <span>${titulo} (${pontos} pts)</span>
-                    </label>
-                    <p class="task-desc">${desc}</p>
-                </div>
-            `;
-        }
-
-        function renderTotalidade() {
-            let html = '';
-            appData.dissertacao.capitulos.forEach((cap, capIndex) => {
-                html += renderDissertacaoItem(cap, capIndex, null);
-                if (cap.subcapitulos.length > 0) {
-                    const progressoCap = calculateProgressoCapitulo(cap);
-                     html += `<div class="progress-bar-container" style="margin-left: 20px;"><div class="progress-bar" style="width: ${progressoCap}%;">${Math.round(progressoCap)}%</div></div>`;
-                    cap.subcapitulos.forEach((sub, subIndex) => { html += renderDissertacaoItem(sub, capIndex, subIndex); });
+        // Namespace do App
+        const App = {
+            // Elementos da UI
+            ui: {
+                container: document.getElementById('app-container'),
+                tabs: {
+                    praxis: document.getElementById('tab-praxis'),
+                    totalidade: document.getElementById('tab-totalidade'),
+                    balanco: document.getElementById('tab-balanco'),
+                },
+                navButtons: document.querySelectorAll('.nav-btn'),
+                theme: {
+                    toggle: document.getElementById('theme-toggle'),
+                    iconLight: document.getElementById('theme-icon-light'),
+                    iconDark: document.getElementById('theme-icon-dark'),
+                },
+                totalidade: {
+                    structureContainer: document.getElementById('dissertation-structure'),
+                    totalProgressBar: document.getElementById('total-progress-bar'),
+                    saveButton: document.getElementById('save-totalidade-btn'),
+                },
+                balanco: {
+                    weeklyRecord: document.getElementById('weekly-record'),
+                    scoreToday: document.getElementById('score-today'),
+                    scoreWeek: document.getElementById('score-week'),
+                    wordChartCanvas: document.getElementById('word-count-chart'),
+                    achievementsGallery: document.getElementById('achievements-gallery'),
+                },
+                notifications: {
+                    container: document.getElementById('notification-container'),
                 }
-            });
-            document.getElementById('dissertacao-estrutura').innerHTML = html;
-            updateProgressoTotal();
-        }
+            },
 
-        function renderDissertacaoItem(item, capIndex, subIndex) {
-            const isSub = subIndex !== null;
-            return `<div class="dissertacao-item ${isSub ? 'subcapitulo' : ''}" data-cap-index="${capIndex}" data-sub-index="${isSub ? subIndex : ''}">
-                    <span class="item-titulo" ondblclick="editItemTitle(this, ${capIndex}, ${subIndex})">${item.titulo}</span>
-                    <div class="item-actions">
-                        ${(item.subcapitulos && item.subcapitulos.length === 0) || isSub ? 
-                            `<button class="btn-concluir ${item.concluido ? 'concluido' : ''}" onclick="toggleItemConcluido(${capIndex}, ${subIndex})">${item.concluido ? 'Concluído' : 'Concluir'}</button>` : 
-                            `<button class="btn-add" onclick="addDissertacaoItem(${capIndex})">+</button>`}
-                        <span class="btn-delete" onclick="deleteDissertacaoItem(${capIndex}, ${subIndex})">🗑️</span>
-                    </div></div>`;
-        }
-        
-        function updateProgressoTotal() {
-            let totalItens = 0, concluidosItens = 0;
-            appData.dissertacao.capitulos.forEach(cap => {
-                if (cap.subcapitulos.length > 0) cap.subcapitulos.forEach(sub => { totalItens++; if (sub.concluido) concluidosItens++; });
-                else { totalItens++; if (cap.concluido) concluidosItens++; }
-            });
-            const progressoGeral = totalItens > 0 ? (concluidosItens / totalItens) * 100 : 0;
-            const barra = document.getElementById('progresso-total-barra');
-            barra.style.width = progressoGeral + '%';
-            barra.textContent = Math.round(progressoGeral) + '%';
-        }
-        
-        function calculateProgressoCapitulo(cap) {
-            if (!cap.subcapitulos || cap.subcapitulos.length === 0) return cap.concluido ? 100 : 0;
-            return (cap.subcapitulos.filter(s => s.concluido).length / cap.subcapitulos.length) * 100;
-        }
+            // Estado da Aplicação
+            state: {},
 
-        function renderBalanco() {
-            renderRegistroSemanal(); renderPontuacao(); renderConquistas(); renderPalavrasChart();
-        }
-        
-        function renderRegistroSemanal() {
-            for (let i = 0; i <= 6; i++) {
-                const diaEl = document.getElementById(`dia-${i}`);
-                const diaData = appData.progresso.semana[i];
-                let innerHTML = '';
-                if (diaData && diaData.tarefas) {
-                    for(let j = 0; j < Math.min(diaData.tarefas.length, 3); j++) {
-                        const isBonus = diaData.tarefas[j].includes('bonus') || diaData.tarefas[j].includes('revisao');
-                        innerHTML += `<div class="bloco-status ${isBonus ? 'concluido-bonus' : 'concluido-main'}"></div>`;
+            // Fila de notificações
+            notificationQueue: [],
+            isNotifying: false,
+            
+            // Instância do Gráfico
+            wordChart: null,
+
+            // Inicialização
+            init() {
+                this.loadState();
+                this.initTheme();
+                this.initNavigation();
+                this.renderAll();
+                this.ui.totalidade.saveButton.addEventListener('click', () => this.handleTotalidadeSave());
+            },
+
+            // --- Gerenciamento de Estado ---
+            getInitialState() {
+                return {
+                    theme: 'light',
+                    dissertation: {
+                        title: "ALIENAÇÃO, TOTALIDADE E HISTÓRIA: A RECEPÇÃO DE GYÖRGY LUKÁCS NO BRASIL A PARTIR DE LEANDRO KONDER E CARLOS NELSON COUTINHO (1961-1972)",
+                        structure: [
+                            { id: 'intro', title: 'Introdução', completed: false, children: [] },
+                            { id: 'cap1', title: 'Capítulo 1: Alienação, totalidade e história como categorias centrais do pensamento lukacsiano', completed: false, children: [
+                                { id: 'cap1.1', title: 'Subcapítulo 1.1: História e consciência de classe como um caminho para Marx: a concepção da totalidade no “marxismo ortodoxo” e a reificação', completed: false },
+                                { id: 'cap1.2', title: 'Subcapítulo 1.2: Autocríticas e inflexões: o "tertium datur" entre o irracionalismo e o dogmatismo', completed: false },
+                                { id: 'cap1.3', title: 'Subcapítulo 1.3: O marxismo como Weltanschauung: estética, ética e ontologia', completed: false },
+                            ]},
+                            { id: 'cap2', title: 'Capítulo 2: A formação do pensamento lukacsiano brasileiro', completed: false, children: [
+                                { id: 'cap2.1', title: 'Subcapítulo 2.1: A descoberta de Lukács e as contradições da política cultural comunista', completed: false },
+                                { id: 'cap2.2', title: 'Subcapítulo 2.2: O surgimento do “lukacsianismo brasileiro”', completed: false },
+                                { id: 'cap2.3', title: 'Subcapítulo 2.3: O lukacsianismo brasileiro em duas vertentes: os comunistas no Rio e o grupo “Práxis” de São Paulo', completed: false },
+                                { id: 'cap2.4', title: 'Subcapítulo 2.4: A luta teórico-ideológica por uma nova política cultural comunista', completed: false },
+                            ]},
+                            { id: 'cap3', title: 'Capítulo 3: O diálogo com o mestre e a evolução do lukacsianismo de Konder e Coutinho (1960-1974)', completed: false, children: [
+                                { id: 'cap3.1', title: 'Subcapítulo 3.1: A correspondência como meio de formação do lukacsianismo brasileiro', completed: false },
+                                { id: 'cap3.2', title: 'Subcapítulo 3.2: Leandro Konder: alienação, realismo e a busca pelo marxismo autêntico', completed: false },
+                                { id: 'cap3.3', title: 'Subcapítulo 3.3: Carlos Nelson Coutinho: entre o “historicismo” e a dialética objetiva', completed: false },
+                            ]},
+                            { id: 'conclusoes', title: 'Considerações finais', completed: false, children: [] },
+                            { id: 'referencias', title: 'Referências', completed: false, children: [] },
+                            { id: 'anexos', title: 'Anexos', completed: false, children: [] },
+                        ]
+                    },
+                    praxisLog: {}, // { 'YYYY-MM-DD': { tasks: {id: bool}, words: number, score: number, saved: true } }
+                    wordHistory: [], // { date: 'YYYY-MM-DD', totalWords: number }
+                    achievements: this.getInitialAchievements(),
+                };
+            },
+
+            loadState() {
+                try {
+                    const savedState = localStorage.getItem('praxisPainelState');
+                    this.state = savedState ? JSON.parse(savedState) : this.getInitialState();
+                    // Garante que a estrutura de conquistas está atualizada
+                    const initialAchievements = this.getInitialAchievements();
+                    for (const key in initialAchievements) {
+                        if (!this.state.achievements[key]) {
+                            this.state.achievements[key] = initialAchievements[key];
+                        }
+                    }
+                } catch (error) {
+                    console.error("Erro ao carregar o estado:", error);
+                    this.state = this.getInitialState();
+                }
+            },
+
+            saveState() {
+                try {
+                    localStorage.setItem('praxisPainelState', JSON.stringify(this.state));
+                } catch (error) {
+                    console.error("Erro ao salvar o estado:", error);
+                    this.showNotification('Erro', 'Não foi possível salvar os dados. O armazenamento pode estar cheio.', 'error');
+                }
+            },
+
+            // --- Renderização ---
+            renderAll() {
+                this.renderPraxis();
+                this.renderTotalidade();
+                this.renderBalanco();
+            },
+
+            // --- Tema ---
+            initTheme() {
+                this.ui.theme.toggle.addEventListener('click', () => {
+                    this.state.theme = this.state.theme === 'light' ? 'dark' : 'light';
+                    this.applyTheme();
+                    this.saveState();
+                });
+                this.applyTheme();
+            },
+
+            applyTheme() {
+                if (this.state.theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                    this.ui.theme.iconLight.classList.add('hidden');
+                    this.ui.theme.iconDark.classList.remove('hidden');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    this.ui.theme.iconLight.classList.remove('hidden');
+                    this.ui.theme.iconDark.classList.add('hidden');
+                }
+                // Recarregar o gráfico para aplicar as cores do tema
+                if (this.wordChart) {
+                    this.wordChart.destroy();
+                    this.renderWordChart();
+                }
+            },
+
+            // --- Navegação ---
+            initNavigation() {
+                this.ui.navButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        const tabId = button.dataset.tab;
+                        this.showTab(tabId);
+                    });
+                });
+            },
+
+            showTab(tabId) {
+                Object.values(this.ui.tabs).forEach(tab => tab.classList.add('hidden'));
+                this.ui.tabs[tabId].classList.remove('hidden');
+
+                this.ui.navButtons.forEach(btn => {
+                    if (btn.dataset.tab === tabId) {
+                        btn.classList.add('text-primary', 'border-primary');
+                        btn.classList.remove('text-gray-500', 'dark:text-gray-400', 'border-transparent');
+                    } else {
+                        btn.classList.remove('text-primary', 'border-primary');
+                        btn.classList.add('text-gray-500', 'dark:text-gray-400', 'border-transparent');
+                    }
+                });
+                // Renderiza o balanço apenas quando a aba é aberta para garantir que o gráfico seja visível
+                if (tabId === 'balanco') {
+                    this.renderBalanco();
+                }
+            },
+
+            // --- Aba: Práxis Diária ---
+            renderPraxis() {
+                const container = this.ui.tabs.praxis;
+                const today = new Date();
+                const dayOfWeek = today.getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
+                const todayKey = today.toISOString().split('T')[0];
+                const todayData = this.state.praxisLog[todayKey] || { tasks: {}, words: 0, score: 0, saved: false };
+
+                let content = '';
+
+                if (todayData.saved) {
+                    content = `
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow text-center">
+                            <h2 class="text-xl font-bold text-primary mb-2">Práxis do Dia Concluída!</h2>
+                            <p class="text-gray-600 dark:text-gray-400 mb-4">A luta de hoje foi registrada. Descanse e prepare-se para o próximo dia. A revolução não para!</p>
+                            <button id="edit-praxis-btn" class="bg-secondary text-white font-bold py-2 px-4 rounded-lg hover:opacity-90 transition-opacity">Fazer Alterações</button>
+                        </div>
+                    `;
+                } else {
+                    let tasksHtml = '';
+                    const tasks = this.getTasksForDay(dayOfWeek);
+
+                    tasks.forEach(task => {
+                        tasksHtml += `
+                            <label for="task-${task.id}" class="flex items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <input type="checkbox" id="task-${task.id}" data-id="${task.id}" data-points="${task.points}" class="praxis-task h-5 w-5 rounded text-primary focus:ring-primary">
+                                <span class="ml-4 flex-grow">
+                                    <span class="font-bold">${task.name}</span>
+                                    <span class="text-sm text-secondary"> (+${task.points} pts)</span>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">${task.desc}</p>
+                                </span>
+                            </label>
+                        `;
+                    });
+
+                    if (dayOfWeek === 0) { // Domingo
+                        tasksHtml += `
+                            <div class="text-center p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                                <p class="mb-4">Domingo é dia de descanso e reflexão. Recupere as energias.</p>
+                                <button id="sunday-extra-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg">Preciso Avançar</button>
+                            </div>
+                            <div id="sunday-extra-task" class="hidden">
+                                ${this.getTasksForDay(-1).map(task => `
+                                    <label for="task-${task.id}" class="flex items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
+                                        <input type="checkbox" id="task-${task.id}" data-id="${task.id}" data-points="${task.points}" class="praxis-task h-5 w-5 rounded text-secondary focus:ring-secondary">
+                                        <span class="ml-4 flex-grow">
+                                            <span class="font-bold text-secondary">${task.name}</span>
+                                            <span class="text-sm text-purple-400"> (+${task.points} pts)</span>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">${task.desc}</p>
+                                        </span>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        `;
+                    }
+                    
+                    content = `
+                        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                            <h2 class="text-xl font-bold mb-2">Práxis Diária</h2>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Sua ação transformadora no mundo. O que será feito hoje?</p>
+                            <div class="space-y-4">${tasksHtml}</div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                            <h3 class="font-bold mb-2">Produção Material</h3>
+                            <label for="word-count" class="text-sm text-gray-600 dark:text-gray-400">Palavras escritas hoje:</label>
+                            <input type="number" id="word-count" min="0" value="0" class="mt-1 w-full p-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                            <p class="text-sm mt-2 text-gray-500 dark:text-gray-400">Total Acumulado: <span id="total-word-count" class="font-bold">${this.calculateTotalWords()}</span></p>
+                        </div>
+                        <button id="save-praxis-btn" class="w-full bg-primary text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition-opacity text-lg">
+                            Registrar Práxis do Dia
+                        </button>
+                    `;
+                }
+                
+                container.innerHTML = content;
+                this.addPraxisListeners(todayData.saved);
+            },
+
+            getTasksForDay(dayOfWeek) {
+                // dayOfWeek: -1 for Sunday extra, 0 for Sunday, 1-5 for Weekdays, 6 for Saturday
+                const weekdaysTasks = [
+                    { id: 'escrita', name: 'Escrita', points: 15, desc: 'Avançar na redação da dissertação.' },
+                    { id: 'leitura', name: 'Leitura', points: 10, desc: 'Leitura e fichamento de textos.' },
+                    { id: 'organizacao', name: 'Organização', points: 5, desc: 'Organizar notas, referências ou estrutura.' },
+                ];
+                const saturdayTasks = [
+                    { id: 'revisao', name: 'Revisão Semanal', points: 10, desc: 'Revisar o que foi produzido na semana.' },
+                    { id: 'planejamento', name: 'Planejamento Leve', points: 5, desc: 'Planejar as metas da próxima semana.' },
+                ];
+                const sundayExtraTask = [
+                    { id: 'avanco', name: 'Avanço Estratégico', points: 25, desc: 'Um esforço extra para adiantar ou recuperar o trabalho.' },
+                ];
+
+                if (dayOfWeek >= 1 && dayOfWeek <= 5) return weekdaysTasks;
+                if (dayOfWeek === 6) return saturdayTasks;
+                if (dayOfWeek === -1) return sundayExtraTask; // Special case for button
+                return []; // Sunday default
+            },
+
+            addPraxisListeners(isSaved) {
+                if (isSaved) {
+                    document.getElementById('edit-praxis-btn').addEventListener('click', () => {
+                        const todayKey = new Date().toISOString().split('T')[0];
+                        if (this.state.praxisLog[todayKey]) {
+                            this.state.praxisLog[todayKey].saved = false;
+                        }
+                        this.renderPraxis();
+                    });
+                } else {
+                    document.getElementById('save-praxis-btn').addEventListener('click', () => this.handlePraxisSave());
+                    const sundayExtraBtn = document.getElementById('sunday-extra-btn');
+                    if (sundayExtraBtn) {
+                        sundayExtraBtn.addEventListener('click', () => {
+                            document.getElementById('sunday-extra-task').classList.remove('hidden');
+                            sundayExtraBtn.parentElement.classList.add('hidden');
+                        });
                     }
                 }
-                diaEl.querySelector('.dia-status-inner').innerHTML = innerHTML;
-            }
-        }
-        
-        function renderPontuacao() {
-            const hoje = new Date().getDay();
-            document.getElementById('pontos-dia').textContent = appData.progresso.semana[hoje]?.pontos || 0;
-            document.getElementById('pontos-semana').textContent = calculatePontosSemana();
-        }
-        
-        function calculatePontosSemana() {
-            return Object.values(appData.progresso.semana).reduce((total, dia) => total + (dia.pontos || 0), 0);
-        }
+            },
 
-        function renderConquistas() {
-            let html = '';
-            appData.conquistas.forEach(c => {
-                html += `<div class="conquista ${c.desbloqueada ? 'desbloqueada' : ''}" onclick="alert('${c.desbloqueada ? 'Conquistado: ' : ''}${c.desc}')">
-                        <span class="conquista-icone">${c.desbloqueada ? '🏆' : '❓'}</span>
-                        <span class="conquista-nome">${c.nome}</span></div>`;
-            });
-            document.getElementById('conquistas-painel').innerHTML = html;
-        }
-        
-        let palavrasChartInstance = null;
-        function renderPalavrasChart() {
-            if (!document.getElementById('tab-balanco').classList.contains('active')) return;
-            const ctx = document.getElementById('palavras-chart').getContext('2d');
-            let cumulativeTotal = 0;
-            const cumulativeData = appData.progresso.historicoPalavras.map(entry => {
-                cumulativeTotal += entry.palavras;
-                return { data: entry.data, total: cumulativeTotal };
-            });
+            handlePraxisSave() {
+                const todayKey = new Date().toISOString().split('T')[0];
+                const tasks = {};
+                let score = 0;
+                document.querySelectorAll('.praxis-task:checked').forEach(taskEl => {
+                    const id = taskEl.dataset.id;
+                    const points = parseInt(taskEl.dataset.points, 10);
+                    tasks[id] = true;
+                    score += points;
+                });
 
-            const isLightMode = document.body.classList.contains('light-mode');
-            const textColor = isLightMode ? '#1c1e22' : '#e0e2e8';
-            const gridColor = isLightMode ? '#dfe4ea' : '#3a3d44';
+                const words = parseInt(document.getElementById('word-count').value, 10) || 0;
 
-            if (palavrasChartInstance) palavrasChartInstance.destroy();
-            palavrasChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: cumulativeData.map(h => new Date(h.data + 'T00:00:00').toLocaleDateString('pt-BR')),
-                    datasets: [{
-                        label: 'Total de Palavras Acumuladas',
-                        data: cumulativeData.map(h => h.total),
-                        borderColor: 'rgba(46, 204, 113, 1)',
-                        backgroundColor: 'rgba(46, 204, 113, 0.2)',
-                        fill: true, tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: { beginAtZero: true, ticks: { color: textColor }, grid: { color: gridColor } },
-                        x: { ticks: { color: textColor }, grid: { color: gridColor } }
+                this.state.praxisLog[todayKey] = { tasks, words, score, saved: true };
+
+                // Atualiza histórico de palavras
+                const existingEntryIndex = this.state.wordHistory.findIndex(e => e.date === todayKey);
+                const totalWords = this.calculateTotalWords();
+                if (existingEntryIndex > -1) {
+                    this.state.wordHistory[existingEntryIndex].totalWords = totalWords;
+                } else {
+                    this.state.wordHistory.push({ date: todayKey, totalWords: totalWords });
+                }
+                // Ordenar histórico por data
+                this.state.wordHistory.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+
+                this.checkAchievements();
+                this.saveState();
+                this.showNotification('Sucesso!', 'Sua práxis diária foi registrada.', 'success');
+                this.renderPraxis();
+                this.renderBalanco();
+            },
+            
+            calculateTotalWords() {
+                return Object.values(this.state.praxisLog).reduce((total, day) => total + (day.words || 0), 0);
+            },
+
+            // --- Aba: A Busca pela Totalidade ---
+            renderTotalidade() {
+                const container = this.ui.totalidade.structureContainer;
+                container.innerHTML = ''; // Limpa a estrutura atual
+                this.state.dissertation.structure.forEach((item, index) => {
+                    container.appendChild(this.createStructureItem(item, [index]));
+                });
+                this.updateTotalProgress();
+            },
+
+            createStructureItem(item, path) {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `p-3 rounded-lg ${path.length > 1 ? 'ml-6 bg-gray-50 dark:bg-gray-700/50' : 'bg-white dark:bg-gray-800 shadow-sm'}`;
+                
+                const hasChildren = item.children && item.children.length > 0;
+                let progressBarHtml = '';
+                if (hasChildren) {
+                    const progress = this.calculateChapterProgress(item);
+                    progressBarHtml = `
+                        <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2.5 mt-2">
+                            <div class="bg-secondary h-2.5 rounded-full" style="width: ${progress}%"></div>
+                        </div>
+                    `;
+                }
+
+                itemDiv.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center flex-grow">
+                            ${!hasChildren ? `
+                            <button data-path="${path.join('.')}" class="toggle-complete-btn mr-3 flex-shrink-0 w-6 h-6 rounded border-2 ${item.completed ? 'bg-secondary border-secondary text-white' : 'border-gray-400'} flex items-center justify-center">
+                                ✓
+                            </button>
+                            ` : `<div class="w-6 h-6 mr-3 flex-shrink-0"></div>`}
+                            <span data-path="${path.join('.')}" class="item-title flex-grow font-medium ${item.completed ? 'line-through text-gray-500' : ''}">${item.title}</span>
+                        </div>
+                        <div class="flex-shrink-0 ml-2 space-x-2">
+                            <button data-path="${path.join('.')}" class="add-item-btn text-blue-500 hover:text-blue-700 text-xl font-bold">+</button>
+                            <button data-path="${path.join('.')}" class="delete-item-btn text-red-500 hover:text-red-700 text-xl font-bold">×</button>
+                        </div>
+                    </div>
+                    ${progressBarHtml}
+                `;
+
+                if (hasChildren) {
+                    const childrenContainer = document.createElement('div');
+                    childrenContainer.className = 'mt-2 space-y-2';
+                    item.children.forEach((child, index) => {
+                        childrenContainer.appendChild(this.createStructureItem(child, [...path, index]));
+                    });
+                    itemDiv.appendChild(childrenContainer);
+                }
+                
+                this.addStructureItemListeners(itemDiv, path);
+                return itemDiv;
+            },
+            
+            addStructureItemListeners(element, path) {
+                // Editar título
+                const titleEl = element.querySelector('.item-title');
+                titleEl.addEventListener('dblclick', () => {
+                    const currentTitle = titleEl.textContent;
+                    titleEl.innerHTML = `<input type="text" class="w-full bg-gray-200 dark:bg-gray-600 p-1 rounded" value="${currentTitle}">`;
+                    const input = titleEl.querySelector('input');
+                    input.focus();
+                    input.addEventListener('blur', () => this.updateItemTitle(path, input.value));
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') input.blur();
+                    });
+                });
+
+                // Deletar item
+                element.querySelector('.delete-item-btn').addEventListener('click', () => this.deleteItem(path));
+                
+                // Adicionar item
+                element.querySelector('.add-item-btn').addEventListener('click', () => this.addItem(path));
+
+                // Marcar como completo
+                const completeBtn = element.querySelector('.toggle-complete-btn');
+                if (completeBtn) {
+                    completeBtn.addEventListener('click', () => this.toggleComplete(path));
+                }
+            },
+
+            getItemByPath(path) {
+                let item = { children: this.state.dissertation.structure };
+                for (const index of path) {
+                    if (!item.children || !item.children[index]) return null;
+                    item = item.children[index];
+                }
+                return item;
+            },
+            
+            getParentByPath(path) {
+                if (path.length === 1) return { children: this.state.dissertation.structure };
+                let parentPath = path.slice(0, -1);
+                return this.getItemByPath(parentPath);
+            },
+
+            updateItemTitle(path, newTitle) {
+                const item = this.getItemByPath(path);
+                if (item) item.title = newTitle;
+                this.renderTotalidade();
+            },
+
+            deleteItem(path) {
+                if (confirm('Tem certeza que deseja excluir este item e todos os seus sub-itens? Esta ação não pode ser desfeita.')) {
+                    const parent = this.getParentByPath(path);
+                    const index = path[path.length - 1];
+                    if (parent && parent.children) {
+                        parent.children.splice(index, 1);
+                        this.renderTotalidade();
+                    }
+                }
+            },
+
+            addItem(path) {
+                const parent = this.getItemByPath(path);
+                if (parent) {
+                    if (!parent.children) parent.children = [];
+                    const newItemTitle = parent.children.length > 0 ? 'Novo Subcapítulo' : 'Novo Capítulo';
+                    parent.children.push({
+                        id: 'custom-' + Date.now(),
+                        title: newItemTitle,
+                        completed: false
+                    });
+                    this.renderTotalidade();
+                }
+            },
+
+            toggleComplete(path) {
+                const item = this.getItemByPath(path);
+                if (item) {
+                    item.completed = !item.completed;
+                    this.renderTotalidade();
+                }
+            },
+            
+            handleTotalidadeSave() {
+                this.checkAchievements();
+                this.saveState();
+                this.showNotification('Progresso Salvo!', 'A estrutura da sua totalidade foi atualizada.', 'success');
+            },
+            
+            calculateChapterProgress(chapter) {
+                if (!chapter.children || chapter.children.length === 0) {
+                    return chapter.completed ? 100 : 0;
+                }
+                const completedCount = chapter.children.filter(sub => sub.completed).length;
+                return (completedCount / chapter.children.length) * 100;
+            },
+
+            updateTotalProgress() {
+                const allItems = this.state.dissertation.structure.flatMap(item => {
+                    return (item.children && item.children.length > 0) ? item.children : [item];
+                });
+                const completedItems = allItems.filter(item => item.completed);
+                const progress = allItems.length > 0 ? (completedItems.length / allItems.length) * 100 : 0;
+                this.ui.totalidade.totalProgressBar.style.width = `${progress}%`;
+            },
+
+            // --- Aba: Balanço Histórico ---
+            renderBalanco() {
+                this.renderWeeklyRecord();
+                this.renderScores();
+                this.renderWordChart();
+                this.renderAchievements();
+            },
+
+            renderWeeklyRecord() {
+                const container = this.ui.balanco.weeklyRecord;
+                container.innerHTML = '';
+                const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+                const today = new Date();
+                const dayOfWeek = today.getDay();
+                
+                for (let i = 0; i < 7; i++) {
+                    const date = new Date(today);
+                    date.setDate(today.getDate() - (dayOfWeek - i));
+                    const dateKey = date.toISOString().split('T')[0];
+                    const log = this.state.praxisLog[dateKey];
+                    
+                    let colorClass = 'bg-gray-200 dark:bg-gray-700';
+                    if (log && log.saved) {
+                        colorClass = 'bg-primary'; // Verde
+                        if (log.tasks && log.tasks.avanco) {
+                            colorClass = 'bg-secondary'; // Roxo
+                        }
+                    }
+
+                    container.innerHTML += `
+                        <div class="text-center">
+                            <p class="font-semibold">${dayNames[i]}</p>
+                            <div class="w-8 h-8 mx-auto mt-1 rounded ${colorClass}"></div>
+                        </div>
+                    `;
+                }
+            },
+            
+            renderScores() {
+                const todayKey = new Date().toISOString().split('T')[0];
+                const todayLog = this.state.praxisLog[todayKey];
+                this.ui.balanco.scoreToday.textContent = (todayLog && todayLog.score) ? todayLog.score : 0;
+
+                const today = new Date();
+                const dayOfWeek = today.getDay();
+                let weeklyScore = 0;
+                for (let i = 0; i <= dayOfWeek; i++) {
+                    const date = new Date();
+                    date.setDate(today.getDate() - (dayOfWeek - i));
+                    const dateKey = date.toISOString().split('T')[0];
+                    const log = this.state.praxisLog[dateKey];
+                    if (log && log.score) {
+                        weeklyScore += log.score;
+                    }
+                }
+                this.ui.balanco.scoreWeek.textContent = weeklyScore;
+            },
+
+            renderWordChart() {
+                if (this.wordChart) {
+                    this.wordChart.destroy();
+                }
+                const ctx = this.ui.balanco.wordChartCanvas.getContext('2d');
+                const labels = this.state.wordHistory.map(e => e.date.substring(5)); // Formato MM-DD
+                const data = this.state.wordHistory.map(e => e.totalWords);
+                
+                const isDark = this.state.theme === 'dark';
+                const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+                const fontColor = isDark ? '#E5E7EB' : '#1F2937';
+
+                this.wordChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Total de Palavras',
+                            data: data,
+                            borderColor: isDark ? '#A78BFA' : '#8B5CF6', // Roxo
+                            backgroundColor: isDark ? 'rgba(167, 139, 250, 0.2)' : 'rgba(139, 92, 246, 0.2)',
+                            tension: 0.1,
+                            fill: true,
+                        }]
                     },
-                    plugins: { legend: { labels: { color: textColor } } }
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: fontColor },
+                                grid: { color: gridColor }
+                            },
+                            x: {
+                                ticks: { color: fontColor },
+                                grid: { color: gridColor }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                labels: { color: fontColor }
+                            }
+                        }
+                    }
+                });
+            },
+
+            renderAchievements() {
+                const container = this.ui.balanco.achievementsGallery;
+                container.innerHTML = '';
+                Object.values(this.state.achievements).forEach(ach => {
+                    const unlocked = ach.unlocked;
+                    container.innerHTML += `
+                        <div class="p-3 rounded-lg text-center ${unlocked ? 'bg-green-100 dark:bg-green-900/50' : 'bg-gray-200 dark:bg-gray-700'}">
+                            <div class="text-4xl mb-2">${unlocked ? '🏆' : '❓'}</div>
+                            <h4 class="font-bold text-sm ${unlocked ? 'text-green-800 dark:text-green-300' : ''}">${ach.title}</h4>
+                            <p class="text-xs text-gray-600 dark:text-gray-400">${ach.desc}</p>
+                        </div>
+                    `;
+                });
+            },
+            
+            // --- Sistema de Conquistas e Notificações ---
+            getInitialAchievements() {
+                return {
+                    'start': { id: 'start', title: 'O Início da Luta', desc: 'Registrar a primeira práxis diária.', unlocked: false },
+                    'words1k': { id: 'words1k', title: 'A Palavra como Arma', desc: 'Escrever um total de 1.000 palavras.', unlocked: false },
+                    'words10k': { id: 'words10k', title: 'Manifesto Pessoal', desc: 'Escrever um total de 10.000 palavras.', unlocked: false },
+                    'words50k': { id: 'words50k', title: 'O Capital (Pessoal)', desc: 'Escrever um total de 50.000 palavras.', unlocked: false },
+                    'consistency3': { id: 'consistency3', title: 'Ritmo Constante', desc: 'Manter uma rotina de 3 dias na semana.', unlocked: false },
+                    'consistency5': { id: 'consistency5', title: 'Ritmo Revolucionário', desc: 'Manter uma rotina de 5 dias na semana.', unlocked: false },
+                    'score100': { id: 'score100', title: 'Acumulação Primitiva', desc: 'Alcançar 100 pontos em uma semana.', unlocked: false },
+                    'sunday_warrior': { id: 'sunday_warrior', title: 'Domingo Vermelho', desc: 'Usar a opção "Preciso Avançar" no domingo.', unlocked: false },
+                    'intro_done': { id: 'intro_done', title: 'O Prefácio da História', desc: 'Concluir a Introdução.', unlocked: false },
+                    'cap1_done': { id: 'cap1_done', title: 'Consciência de Classe', desc: 'Concluir o Capítulo 1.', unlocked: false },
+                    'cap2_done': { id: 'cap2_done', title: 'A Práxis Brasileira', desc: 'Concluir o Capítulo 2.', unlocked: false },
+                    'cap3_done': { id: 'cap3_done', title: 'Diálogo com o Mestre', desc: 'Concluir o Capítulo 3.', unlocked: false },
+                    'all_chapters_done': { id: 'all_chapters_done', title: 'A Totalidade em Vista', desc: 'Concluir todos os capítulos.', unlocked: false },
+                    'dissertation_done': { id: 'dissertation_done', title: 'A Práxis se Completa', desc: 'Concluir todos os itens da dissertação.', unlocked: false },
+                };
+            },
+
+            checkAchievements() {
+                const achievements = this.state.achievements;
+                
+                // Lógica de verificação
+                const check = (id, condition) => {
+                    if (!achievements[id].unlocked && condition) {
+                        achievements[id].unlocked = true;
+                        this.showNotification(`🏆 Conquista Desbloqueada!`, achievements[id].title, 'achievement');
+                    }
+                };
+                
+                // Verificações
+                const logKeys = Object.keys(this.state.praxisLog);
+                check('start', logKeys.length >= 1);
+
+                const totalWords = this.calculateTotalWords();
+                check('words1k', totalWords >= 1000);
+                check('words10k', totalWords >= 10000);
+                check('words50k', totalWords >= 50000);
+                
+                const weeklyScore = parseInt(this.ui.balanco.scoreWeek.textContent, 10);
+                check('score100', weeklyScore >= 100);
+                
+                const todayKey = new Date().toISOString().split('T')[0];
+                const todayLog = this.state.praxisLog[todayKey];
+                if (todayLog && todayLog.tasks.avanco) {
+                    check('sunday_warrior', true);
                 }
-            });
-        }
+                
+                const daysThisWeek = this.getDaysThisWeek();
+                const activeDays = daysThisWeek.filter(day => this.state.praxisLog[day] && this.state.praxisLog[day].saved).length;
+                check('consistency3', activeDays >= 3);
+                check('consistency5', activeDays >= 5);
+                
+                // Verificações de estrutura
+                const intro = this.getItemByPath([0]);
+                check('intro_done', intro && intro.completed);
+                
+                const cap1 = this.getItemByPath([1]);
+                check('cap1_done', cap1 && this.isChapterComplete(cap1));
 
-        function handlePraxisSave() {
-            const hoje = new Date();
-            const diaSemana = hoje.getDay();
-            const hojeStr = hoje.toISOString().split('T')[0];
-            let tarefasConcluidas = [], pontosDia = 0;
-            document.querySelectorAll('#praxis-conteudo input[type="checkbox"]').forEach(cb => {
-                if (cb.checked) {
-                    tarefasConcluidas.push(cb.dataset.taskId);
-                    pontosDia += parseInt(cb.dataset.pontos, 10);
+                const cap2 = this.getItemByPath([2]);
+                check('cap2_done', cap2 && this.isChapterComplete(cap2));
+
+                const cap3 = this.getItemByPath([3]);
+                check('cap3_done', cap3 && this.isChapterComplete(cap3));
+
+                const allChapters = this.state.dissertation.structure.filter(item => item.id.startsWith('cap'));
+                check('all_chapters_done', allChapters.every(c => this.isChapterComplete(c)));
+                
+                const allItems = this.state.dissertation.structure.flatMap(item => (item.children && item.children.length > 0) ? item.children : [item]);
+                check('dissertation_done', allItems.every(item => item.completed));
+            },
+            
+            getDaysThisWeek() {
+                const days = [];
+                const today = new Date();
+                const dayOfWeek = today.getDay();
+                for (let i = 0; i < 7; i++) {
+                    const date = new Date(today);
+                    date.setDate(today.getDate() - (dayOfWeek - i));
+                    days.push(date.toISOString().split('T')[0]);
                 }
-            });
-            appData.progresso.semana[diaSemana] = { tarefas: tarefasConcluidas, pontos: pontosDia };
-            const palavrasHoje = parseInt(document.getElementById('palavras-dia').value, 10) || 0;
-            if (palavrasHoje > 0) {
-                appData.progresso.totalPalavras += palavrasHoje;
-                const historicoEntry = appData.progresso.historicoPalavras.find(h => h.data === hojeStr);
-                if (historicoEntry) historicoEntry.palavras += palavrasHoje;
-                else appData.progresso.historicoPalavras.push({ data: hojeStr, palavras: palavrasHoje });
-            }
-            checkAndUnlockConquistas(); saveData(); renderAll();
-            alert('Práxis diária registrada com sucesso!');
-        }
-        
-        function handleTotalidadeSave() {
-            checkAndUnlockConquistas(); saveData(); renderTotalidade();
-            alert('Estrutura e progresso da Totalidade salvos!');
-        }
+                return days;
+            },
 
-        window.toggleItemConcluido = function(capIndex, subIndex) {
-            let item = subIndex !== null ? appData.dissertacao.capitulos[capIndex].subcapitulos[subIndex] : appData.dissertacao.capitulos[capIndex];
-            item.concluido = !item.concluido;
-            const cap = appData.dissertacao.capitulos[capIndex];
-            if (cap.subcapitulos.length > 0) cap.concluido = cap.subcapitulos.every(s => s.concluido);
-            renderTotalidade();
-        }
-        window.deleteDissertacaoItem = function(capIndex, subIndex) {
-            if (confirm('Tem certeza que deseja apagar este item?')) {
-                if (subIndex !== null) appData.dissertacao.capitulos[capIndex].subcapitulos.splice(subIndex, 1);
-                else appData.dissertacao.capitulos.splice(capIndex, 1);
-                renderTotalidade();
-            }
-        }
-        window.addDissertacaoItem = function(capIndex) {
-            const titulo = prompt(capIndex === null ? 'Título do novo capítulo:' : 'Título do novo subcapítulo:');
-            if (titulo) {
-                const newItem = { id: Date.now(), titulo: titulo, concluido: false };
-                if (capIndex === null) { newItem.subcapitulos = []; appData.dissertacao.capitulos.push(newItem); } 
-                else { appData.dissertacao.capitulos[capIndex].subcapitulos.push(newItem); }
-                renderTotalidade();
-            }
-        }
-        window.editItemTitle = function(element, capIndex, subIndex) {
-            const item = subIndex !== null ? appData.dissertacao.capitulos[capIndex].subcapitulos[subIndex] : appData.dissertacao.capitulos[capIndex];
-            const novoTitulo = prompt('Editar título:', item.titulo);
-            if (novoTitulo && novoTitulo.trim() !== '') {
-                item.titulo = novoTitulo.trim();
-                element.textContent = item.titulo;
-            }
-        }
-        
-        function countCompletedTasksToday() {
-            return appData.progresso.semana[new Date().getDay()]?.tarefas?.length || 0;
-        }
-        function isDissertacaoCompleta() { return appData.dissertacao.capitulos.every(cap => cap.concluido); }
-        
-        function checkAndUnlockConquistas() {
-            appData.conquistas.forEach(conquista => {
-                if (!conquista.desbloqueada && conquista.check()) {
-                    conquista.desbloqueada = true;
-                    notificationQueue.push(`🏆 Conquista Desbloqueada: ${conquista.nome}`);
+            isChapterComplete(chapter) {
+                if (!chapter.children || chapter.children.length === 0) return chapter.completed;
+                return chapter.children.every(sub => sub.completed);
+            },
+
+            showNotification(title, message, type = 'info') {
+                this.notificationQueue.push({ title, message, type });
+                this.processNotificationQueue();
+            },
+
+            processNotificationQueue() {
+                if (this.isNotifying || this.notificationQueue.length === 0) {
+                    return;
                 }
-            });
-            processNotificationQueue();
-        }
+                this.isNotifying = true;
+                const { title, message, type } = this.notificationQueue.shift();
+                
+                const notification = document.createElement('div');
+                let colors = 'bg-blue-500 text-white';
+                if (type === 'success') colors = 'bg-green-500 text-white';
+                if (type === 'error') colors = 'bg-red-500 text-white';
+                if (type === 'achievement') colors = 'bg-yellow-400 text-gray-800';
 
-        function processNotificationQueue() {
-            if (isNotifying || notificationQueue.length === 0) return;
-            isNotifying = true;
-            const message = notificationQueue.shift();
-            const notificationContainer = document.getElementById('notification-container');
-            notificationContainer.querySelector('#notification-text').textContent = message;
-            notificationContainer.classList.add('show');
-            setTimeout(() => {
-                notificationContainer.classList.remove('show');
-                setTimeout(() => { isNotifying = false; processNotificationQueue(); }, 500);
-            }, 5000);
-        }
+                notification.className = `p-4 rounded-lg shadow-xl ${colors} notification-enter`;
+                notification.innerHTML = `
+                    <h4 class="font-bold">${title}</h4>
+                    <p>${message}</p>
+                `;
 
-        init();
+                this.ui.notifications.container.appendChild(notification);
+
+                setTimeout(() => {
+                    notification.classList.remove('notification-enter');
+                    notification.classList.add('notification-exit');
+                    notification.addEventListener('animationend', () => {
+                        notification.remove();
+                        this.isNotifying = false;
+                        this.processNotificationQueue();
+                    });
+                }, 5000);
+            },
+        };
+
+        // Inicia a aplicação
+        App.init();
     });
     </script>
 </body>
 </html>
+
