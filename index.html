@@ -3,590 +3,842 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel da Práxis Acadêmica v10.1</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>Painel da Práxis</title>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #111827; color: #d1d5db; }
-        .nav-button.active { background-color: #4f46e5; color: #ffffff; }
-        .progress-bar-bg { background-color: #374151; }
-        .progress-bar-fill { background-color: #4f46e5; transition: width 0.5s ease-in-out; }
-        .chapter-progress-bar-fill { background-color: #16a34a; }
-        .task-item:has(input:checked) .task-label, .subchapter-item.completed .editable, .chapter-item.completed .editable { text-decoration: line-through; color: #6b7280; }
-        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out; }
-        .hidden { display: none; }
-        #achievement-toast { position: fixed; top: -100px; left: 50%; transform: translateX(-50%); background-color: #16a34a; color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 100; transition: top 0.5s ease-in-out; text-align: center; }
-        .delete-btn { opacity: 0.2; transition: opacity 0.2s; }
-        .task-item:hover .delete-btn, .subchapter-title:hover .delete-btn, .chapter-header:hover .delete-btn { opacity: 1; }
-        .focus-panel { transition: opacity 0.3s, transform 0.3s; }
-        .achievement-card.locked { opacity: 0.4; filter: grayscale(80%); }
-        .week-log-day-block { width: 12px; height: 12px; border-radius: 2px; }
+        /* Estilos Gerais e Temática */
+        :root {
+            --cor-fundo: #1e1e1e;
+            --cor-texto: #e0e0e0;
+            --cor-primaria: #b71c1c; /* Vermelho Revolucionário */
+            --cor-secundaria: #424242;
+            --cor-terciaria: #616161;
+            --cor-sucesso: #4caf50; /* Verde */
+            --cor-bonus: #9c27b0; /* Roxo */
+            --cor-conquista: #ffc107; /* Dourado */
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--cor-fundo);
+            color: var(--cor-texto);
+            margin: 0;
+            padding: 0;
+            overscroll-behavior-y: contain;
+        }
+        .container {
+            padding: 15px;
+            padding-bottom: 80px; /* Espaço para a navegação fixa */
+        }
+        h1, h2, h3 {
+            color: var(--cor-primaria);
+            border-bottom: 1px solid var(--cor-secundaria);
+            padding-bottom: 5px;
+            font-weight: 500;
+        }
+
+        /* Navegação */
+        .nav-bar {
+            display: flex;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--cor-secundaria);
+            border-top: 2px solid var(--cor-primaria);
+        }
+        .nav-button {
+            flex: 1;
+            padding: 15px 5px;
+            text-align: center;
+            background: none;
+            border: none;
+            color: var(--cor-texto);
+            font-size: 14px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+        }
+        .nav-button.active {
+            background-color: var(--cor-terciaria);
+            border-bottom: 3px solid var(--cor-primaria);
+        }
+
+        /* Conteúdo das Abas */
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Estilos Comuns */
+        .card {
+            background-color: var(--cor-secundaria);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .card-title {
+            margin-top: 0;
+            font-size: 1.2em;
+        }
+        .btn-salvar {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: white;
+            background-color: var(--cor-primaria);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        input[type="number"], input[type="text"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            background-color: var(--cor-terciaria);
+            border: 1px solid #757575;
+            color: var(--cor-texto);
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        
+        /* Aba 1: Práxis Diária */
+        .task-block {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--cor-primaria);
+        }
+        .task-block.bonus {
+            border-left: 4px solid var(--cor-bonus);
+        }
+        .task-block label {
+            display: flex;
+            align-items: center;
+            font-size: 1.1em;
+        }
+        .task-block input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+        }
+        .task-desc {
+            font-size: 0.8em;
+            color: #bdbdbd;
+            margin-left: 30px;
+        }
+        .btn-opcional {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: var(--cor-bonus);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* Aba 2: A Busca pela Totalidade */
+        .dissertacao-item {
+            background-color: var(--cor-terciaria);
+            margin-bottom: 8px;
+            padding: 10px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .dissertacao-item.subcapitulo {
+            margin-left: 20px;
+        }
+        .item-titulo { flex-grow: 1; }
+        .item-actions { display: flex; align-items: center; gap: 10px; }
+        .btn-concluir {
+            padding: 5px 10px;
+            font-size: 0.8em;
+            background-color: var(--cor-sucesso);
+            color: white; border: none; border-radius: 4px; cursor: pointer;
+        }
+        .btn-concluir.concluido { background-color: #616161; text-decoration: line-through; }
+        .btn-delete { color: #ef5350; cursor: pointer; font-size: 1.2em; }
+        .btn-add {
+            padding: 8px 12px;
+            background-color: var(--cor-primaria);
+            color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px;
+        }
+        .progress-bar-container {
+            width: 100%;
+            background-color: #424242;
+            border-radius: 5px;
+            margin: 5px 0 15px 0;
+        }
+        .progress-bar {
+            width: 0%;
+            height: 12px;
+            background-color: var(--cor-sucesso);
+            border-radius: 5px;
+            transition: width 0.5s ease-in-out;
+            text-align: center;
+            color: white;
+            font-size: 0.7em;
+            line-height: 12px;
+        }
+
+        /* Aba 3: Balanço Histórico */
+        .semana-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px; text-align: center;
+        }
+        .dia-header { font-size: 0.8em; margin-bottom: 5px; }
+        .dia-status {
+            width: 100%;
+            padding-top: 100%; /* Aspect ratio 1:1 */
+            position: relative;
+            background-color: var(--cor-terciaria);
+            border-radius: 4px;
+        }
+        .dia-status-inner {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            padding: 3px;
+        }
+        .bloco-status {
+            height: 25%;
+            width: 100%;
+            border-radius: 2px;
+            background-color: #616161;
+        }
+        .bloco-status.concluido-main { background-color: var(--cor-sucesso); }
+        .bloco-status.concluido-bonus { background-color: var(--cor-bonus); }
+        #chart-container { margin-top: 20px; }
+
+        /* Conquistas */
+        .conquistas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 15px;
+            text-align: center;
+        }
+        .conquista {
+            cursor: pointer;
+        }
+        .conquista-icone {
+            font-size: 3em;
+            filter: grayscale(1);
+            opacity: 0.5;
+            transition: all 0.3s;
+        }
+        .conquista.desbloqueada .conquista-icone {
+            filter: grayscale(0);
+            opacity: 1;
+            color: var(--cor-conquista);
+        }
+        .conquista-nome {
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+
+        /* Notificações */
+        #notification-container {
+            position: fixed;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--cor-conquista);
+            color: #1e1e1e;
+            padding: 15px 25px;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            z-index: 1000;
+            transition: top 0.5s ease-in-out;
+            text-align: center;
+            font-weight: bold;
+        }
+        #notification-container.show {
+            top: 0;
+        }
     </style>
 </head>
-<body class="antialiased">
+<body>
 
-    <div id="achievement-toast"><h4 id="achievement-title" class="font-bold"></h4><p id="achievement-message" class="text-sm"></p></div>
-    <div id="confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"><div class="bg-gray-800 rounded-lg p-6 shadow-xl max-w-sm mx-auto"><h3 id="modal-title" class="text-lg font-bold text-white">Confirmar Ação</h3><p id="modal-body" class="text-sm text-gray-300 mt-2 mb-4">Você tem certeza de que deseja excluir este item? Esta ação é irreversível.</p><div class="flex justify-end space-x-4"><button id="modal-cancel" class="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 rounded-md hover:bg-gray-600">Cancelar</button><button id="modal-confirm" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">Excluir</button></div></div></div>
-    <div id="focus-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"><div class="bg-gray-800 rounded-lg p-6 shadow-xl w-full max-w-md mx-auto"><h3 class="text-lg font-bold text-white">Compromisso com a Práxis</h3><p class="text-sm text-gray-400 mt-2 mb-4">Defina sua tarefa imediata para esta sessão de foco.</p><div><label for="focus-goal-input" class="block text-sm font-medium text-gray-300">Qual é a sua tarefa imediata, camarada?</label><input type="text" id="focus-goal-input" class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm" placeholder="Ex: Escrever 250 palavras sobre a reificação..."></div><div class="mt-4"><p class="block text-sm font-medium text-gray-300">Qual a duração desta jornada?</p><div class="flex space-x-2 mt-2" id="focus-duration-options"><button data-duration="5400" class="flex-1 px-4 py-2 text-sm font-medium bg-purple-600 text-white rounded-md hover:bg-gray-600">90 min</button><button data-duration="7200" class="flex-1 px-4 py-2 text-sm font-medium bg-gray-700 rounded-md hover:bg-gray-600">120 min</button><button data-duration="10800" class="flex-1 px-4 py-2 text-sm font-medium bg-gray-700 rounded-md hover:bg-gray-600">180 min</button></div></div><div class="mt-4 flex items-center"><input id="focus-fullscreen-checkbox" type="checkbox" class="h-4 w-4 rounded bg-gray-600 border-gray-500 text-purple-500 focus:ring-purple-600"><label for="focus-fullscreen-checkbox" class="ml-2 block text-sm text-gray-300">Ativar Velo da Alienação (Modo Imersivo)</label></div><div class="mt-6 flex justify-end space-x-4"><button id="focus-modal-cancel" class="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 rounded-md hover:bg-gray-600">Cancelar</button><button id="focus-modal-start" class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700">Iniciar Foco</button></div></div></div>
-    <div id="focus-panel" class="hidden fixed bottom-4 right-4 bg-gray-900/80 backdrop-blur-md border border-purple-500/50 rounded-lg p-4 w-80 shadow-2xl opacity-0 transform translate-y-4"><div class="flex items-center justify-between"><div class="flex-grow"><p class="text-xs text-purple-300">Foco Atual:</p><p id="focus-panel-goal" class="text-sm font-semibold text-white truncate"></p></div><div class="ml-4 text-right"><p class="text-xs text-gray-400">Tempo Restante:</p><p id="focus-panel-timer" class="text-2xl font-bold text-white"></p></div></div><div class="w-full bg-gray-700 rounded-full h-1 mt-2"><div id="focus-panel-progress" class="bg-purple-500 h-1 rounded-full" style="width: 100%;"></div></div><button id="focus-panel-stop" class="w-full mt-3 text-center text-xs text-red-400 hover:text-red-300">Abandonar a Práxis (Parar)</button></div>
-    <div id="sound-panel-container" class="fixed bottom-4 left-4 z-40"><button id="sound-panel-toggle" class="w-12 h-12 bg-gray-800 border border-gray-700 rounded-full flex items-center justify-center text-2xl shadow-lg">🎵</button><div id="sound-panel" class="hidden absolute bottom-16 left-0 bg-gray-800/80 backdrop-blur-md border border-gray-700 rounded-lg p-3 space-y-2 w-64"><button data-sound="white-noise" class="sound-btn w-full text-left text-sm p-2 hover:bg-gray-700 rounded-md">Silêncio de Budapeste (Ruído Branco)</button><button data-sound="ocean-waves" class="sound-btn w-full text-left text-sm p-2 hover:bg-gray-700 rounded-md">Dialética da Natureza (Ondas)</button><button data-sound="binaural" class="sound-btn w-full text-left text-sm p-2 hover:bg-gray-700 rounded-md">Foco Proletário (Binaural)</button><button data-sound="stop" class="w-full text-left text-sm p-2 text-red-400 hover:bg-gray-700 rounded-md">Parar</button></div></div>
+    <div id="app">
+        <div id="tab-praxis" class="tab-content active">
+            <div class="container">
+                <h1>Práxis Diária</h1>
+                <div id="praxis-conteudo"></div>
+                <div class="card">
+                    <h3 class="card-title">Produção Material</h3>
+                    <input type="number" id="palavras-dia" placeholder="Palavras escritas hoje">
+                    <p>Total Acumulado: <strong id="total-palavras">0</strong> palavras</p>
+                </div>
+                <button id="salvar-praxis" class="btn-salvar">Salvar Práxis do Dia</button>
+            </div>
+        </div>
 
-    <div class="container mx-auto max-w-6xl p-4 sm:p-6 md:p-8">
-        <header class="text-center mb-10 flex justify-between items-center"><div class="flex-1"></div><div class="flex-1"><h1 class="text-4xl font-bold text-white">Painel da Práxis Acadêmica</h1><p class="text-gray-400 mt-2">Pela superação da alienação, rumo à totalidade concreta.</p></div><div class="flex-1 flex justify-end"><button id="fullscreen-btn" title="Ativar Modo Imersivo" class="text-2xl text-gray-500 hover:text-white transition">⛶</button></div></header>
-        <nav class="mb-8 flex justify-center bg-gray-800/50 backdrop-blur-sm p-2 rounded-lg border border-gray-700"><div id="nav-container" class="flex flex-wrap justify-center gap-2"><button data-target="praxis-diaria" class="nav-button active px-4 py-2 text-sm font-semibold rounded-md transition">Práxis Diária</button><button data-target="busca-totalidade" class="nav-button px-4 py-2 text-sm font-semibold rounded-md transition">A Busca pela Totalidade</button><button data-target="balanco-historico" class="nav-button px-4 py-2 text-sm font-semibold rounded-md transition">Balanço Histórico</button></div></nav>
-        <main>
-            <section id="praxis-diaria" class="main-section"><div class="grid lg:grid-cols-3 gap-8"><div class="lg:col-span-2 bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700"><h2 class="text-2xl font-bold mb-4 text-white">Frente de Batalha: <span id="current-day"></span></h2><div id="daily-task-list" class="space-y-4"></div><div class="mt-8 pt-6 border-t border-gray-700 flex justify-between items-center"><button id="start-focus-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg">Engajar em Foco Total</button><button id="save-daily-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg">Salvar Práxis do Dia</button></div></div><div class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700"><h2 class="text-2xl font-bold mb-4 text-white">Produção Material</h2><p class="text-sm text-gray-400 mb-4">Registre a produção de palavras para a análise da mais-valia (acadêmica).</p><div class="mt-4 flex gap-2"><input type="number" id="word-count-input" class="w-full border bg-gray-700 border-gray-600 text-white rounded-md px-3 py-2 text-sm" placeholder="Palavras de hoje..."/><button id="add-progress-button" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md text-sm">Registrar</button></div><p class="text-sm text-gray-400 mt-4">Total Acumulado: <span id="total-word-count" class="font-bold text-purple-300">0</span> palavras</p></div></div></section>
-            <section id="busca-totalidade" class="main-section hidden"><div class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700"><h2 class="text-2xl font-bold mb-2 text-white">A Busca pela Totalidade</h2><p class="text-gray-400 mb-6">As etapas da revolução. Organize os momentos do processo dialético.</p><div class="mb-8"><div class="flex justify-between items-center mb-1"><span class="text-sm font-medium text-purple-300">Consciência de Si da Dissertação (Progresso Total)</span><span id="total-progress-text" class="text-sm font-medium text-purple-300">0%</span></div><div class="w-full progress-bar-bg rounded-full h-4"><div id="total-progress-bar" class="progress-bar-fill h-4 rounded-full"></div></div></div><div id="chapters-container" class="space-y-4"></div><div class="mt-6 pt-6 border-t border-gray-700 flex justify-between items-center"><input type="text" id="new-chapter-input" class="new-item-input bg-gray-700 border border-gray-600 text-sm rounded-md w-full p-2" placeholder="+ Adicionar novo capítulo ou seção..."/><button id="save-manifesto-btn" class="ml-4 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg shadow-lg">Salvar Manifesto</button></div></div></section>
-            <section id="balanco-historico" class="main-section hidden"><div class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700"><h2 class="text-2xl font-bold mb-2 text-white">Balanço Histórico da Consciência</h2><p class="text-gray-400 mb-6">Análise da sua práxis histórica para guiar a luta futura.</p><div class="grid lg:grid-cols-2 gap-8"><div class="bg-gray-900/50 p-4 rounded-lg border border-gray-700"><h3 class="font-semibold text-lg text-purple-300 mb-3">Registro Semanal da Práxis</h3><div id="weekly-log-container"></div><div class="flex justify-around mt-4 text-center"><p class="text-sm">Pontos do Dia: <span id="daily-score" class="font-bold text-green-400">0</span></p><p class="text-sm">Pontos da Semana: <span id="weekly-score" class="font-bold text-purple-300">0</span></p></div></div><div class="bg-gray-900/50 p-4 rounded-lg border border-gray-700"><h3 class="font-semibold text-lg text-purple-300 mb-3">Acumulação de Palavras</h3><div class="relative h-48"><canvas id="words-history-chart"></canvas></div></div></div><h3 class="font-semibold text-lg text-purple-300 mt-8 mb-3">Conquistas da Revolução</h3><div id="achievements-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div></div></section>
-        </main>
+        <div id="tab-totalidade" class="tab-content">
+            <div class="container">
+                <h1>A Busca pela Totalidade</h1>
+                <h3>Progresso Total da Dissertação</h3>
+                <div class="progress-bar-container">
+                    <div id="progresso-total-barra" class="progress-bar"></div>
+                </div>
+                <div id="dissertacao-estrutura"></div>
+                 <div style="text-align: center; margin-top: 20px;">
+                    <button id="add-capitulo" class="btn-add">Adicionar Capítulo</button>
+                </div>
+                <button id="salvar-totalidade" class="btn-salvar">Salvar Progresso Estrutural</button>
+            </div>
+        </div>
+
+        <div id="tab-balanco" class="tab-content">
+            <div class="container">
+                <h1>Balanço Histórico</h1>
+                <div class="card">
+                    <h3 class="card-title">Registro Semanal da Luta</h3>
+                    <div class="semana-grid">
+                        <span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span><span>Dom</span>
+                        <div id="dia-1" class="dia-status"><div class="dia-status-inner"></div></div>
+                        <div id="dia-2" class="dia-status"><div class="dia-status-inner"></div></div>
+                        <div id="dia-3" class="dia-status"><div class="dia-status-inner"></div></div>
+                        <div id="dia-4" class="dia-status"><div class="dia-status-inner"></div></div>
+                        <div id="dia-5" class="dia-status"><div class="dia-status-inner"></div></div>
+                        <div id="dia-6" class="dia-status"><div class="dia-status-inner"></div></div>
+                        <div id="dia-0" class="dia-status"><div class="dia-status-inner"></div></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3 class="card-title">Sistema de Pontuação</h3>
+                    <p>Pontos do Dia: <strong id="pontos-dia">0</strong></p>
+                    <p>Total Semanal: <strong id="pontos-semana">0</strong></p>
+                </div>
+                <div class="card">
+                    <h3 class="card-title">Gráfico de Acumulação de Palavras</h3>
+                    <div id="chart-container">
+                        <canvas id="palavras-chart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3 class="card-title">Painel de Conquistas</h3>
+                    <div id="conquistas-painel" class="conquistas-grid"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <nav class="nav-bar">
+        <button class="nav-button active" data-tab="tab-praxis">Práxis Diária</button>
+        <button class="nav-button" data-tab="tab-totalidade">A Totalidade</button>
+        <button class="nav-button" data-tab="tab-balanco">Balanço Histórico</button>
+    </nav>
+    
+    <div id="notification-container">
+        <p id="notification-text"></p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
-    //<![CDATA[
-    document.addEventListener('DOMContentLoaded', function() {
-        let appData;
-        let focusInterval;
-        let audioCtx, oscillator, gainNode;
-        let itemToDelete = null;
-        let selectedDuration = 5400;
-        let wordsHistoryChart;
+    document.addEventListener('DOMContentLoaded', () => {
+        // Objeto principal de dados do App
+        let appData = {};
 
-        const defaultData = {
-            totalWords: 0,
-            focusSessionsCompleted: 0,
-            wordCountHistory: {},
-            weeklyLog: {},
-            achievements: {
-                firstTask: false, first1000Words: false, allDaily: false, marathon5days: false, focusMaster10: false,
-                points50: false, points150: false, points300: false,
-                words5k: false, words15k: false,
-                completedChapters: [], completedSubchapters: []
-            },
-            dissertation: [
-                { id: 'ch0', title: 'Introdução', subchapters: [], completed: false },
-                { id: 'ch1', title: 'Capítulo 1: Alienação, totalidade e história como categorias centrais do pensamento lukacsiano', completed: false, subchapters: [
-                    { id: 'sc1-1', title: '1.1: História e consciência de classe como um caminho para Marx...', tasks: [], completed: false },
-                    { id: 'sc1-2', title: '1.2: Autocríticas e inflexões: o "tertium datur"...', tasks: [], completed: false },
-                    { id: 'sc1-3', title: '1.3: O marxismo como Weltanschauung...', tasks: [], completed: false }
+        // Configurações e Estruturas Padrão
+        const defaultDissertacao = {
+            titulo: "ALIENAÇÃO, TOTALIDADE E HISTÓRIA: A RECEPÇÃO DE GYÖRGY LUKÁCS NO BRASIL A PARTIR DE LEANDRO KONDER E CARLOS NELSON COUTINHO (1961-1972)",
+            capitulos: [
+                { id: 1, titulo: "Introdução", concluido: false, subcapitulos: [] },
+                { id: 2, titulo: "Capítulo 1: Alienação, totalidade e história como categorias centrais do pensamento lukacsiano", concluido: false, subcapitulos: [
+                    { id: 21, titulo: "Subcapítulo 1.1: História e consciência de classe como um caminho para Marx: a concepção da totalidade no “marxismo ortodoxo” e a reificação", concluido: false },
+                    { id: 22, titulo: "Subcapítulo 1.2: Autocríticas e inflexões: o \"tertium datur\" entre o irracionalismo e o dogmatismo", concluido: false },
+                    { id: 23, titulo: "Subcapítulo 1.3: O marxismo como Weltanschauung: estética, ética e ontologia", concluido: false }
                 ]},
-                { id: 'ch2', title: 'Capítulo 2: A formação do pensamento lukacsiano brasileiro', completed: false, subchapters: [
-                    { id: 'sc2-1', title: '2.1: A descoberta de Lukács e as contradições...', tasks: [], completed: false },
-                    { id: 'sc2-2', title: '2.2: O surgimento do “lukacsianismo brasileiro”', tasks: [], completed: false },
-                    { id: 'sc2-3', title: '2.3: O lukacsianismo brasileiro em duas vertentes...', tasks: [], completed: false },
-                    { id: 'sc2-4', title: '2.4: A luta teórico-ideológica por uma nova política...', tasks: [], completed: false }
+                { id: 3, titulo: "Capítulo 2: A formação do pensamento lukacsiano brasileiro", concluido: false, subcapitulos: [
+                    { id: 31, titulo: "Subcapítulo 2.1: A descoberta de Lukács e as contradições da política cultural comunista", concluido: false },
+                    { id: 32, titulo: "Subcapítulo 2.2: O surgimento do “lukacsianismo brasileiro”", concluido: false },
+                    { id: 33, titulo: "Subcapítulo 2.3: O lukacsianismo brasileiro em duas vertentes: os comunistas no Rio e o grupo “Práxis” de São Paulo", concluido: false },
+                    { id: 34, titulo: "Subcapítulo 2.4: A luta teórico-ideológica por uma nova política cultural comunista", concluido: false }
                 ]},
-                { id: 'ch3', title: 'Capítulo 3: O diálogo com o mestre e a evolução...', completed: false, subchapters: [
-                    { id: 'sc3-1', title: '3.1: A correspondência como meio de formação...', tasks: [], completed: false },
-                    { id: 'sc3-2', title: '3.2: Leandro Konder: alienação, realismo...', tasks: [], completed: false },
-                    { id: 'sc3-3', title: '3.3: Carlos Nelson Coutinho: entre o “historicismo”...', tasks: [], completed: false }
+                { id: 4, titulo: "Capítulo 3: O diálogo com o mestre e a evolução do lukacsianismo de Konder e Coutinho (1960-1974)", concluido: false, subcapitulos: [
+                    { id: 41, titulo: "Subcapítulo 3.1: A correspondência como meio de formação do lukacsianismo brasileiro", concluido: false },
+                    { id: 42, titulo: "Subcapítulo 3.2: Leandro Konder: alienação, realismo e a busca pelo marxismo autêntico", concluido: false },
+                    { id: 43, titulo: "Subcapítulo 3.3: Carlos Nelson Coutinho: entre o “historicismo” e a dialética objetiva", concluido: false }
                 ]},
-                { id: 'ch4', title: 'Considerações finais', subchapters: [], completed: false },
-                { id: 'ch5', title: 'Referências', subchapters: [], completed: false },
-                { id: 'ch6', title: 'Anexos', subchapters: [], completed: false }
-            ],
-            taskTemplates: {
-                weekday: [
-                    { id: 'dt1', title: 'Bloco 1: Escrita', description: 'O momento de maior energia deve ser dedicado à tarefa mais difícil: a produção de texto. O objetivo é desenvolver um subcapítulo ou atingir uma meta de palavras, usando apenas anotações já existentes. (10 Pontos)', points: 10 },
-                    { id: 'dt2', title: 'Bloco 2: Leitura e Fichamento', description: 'Após a escrita, o foco se volta para a leitura e fichamento dos materiais necessários para a próxima sessão de escrita. Este é o momento de acumular o conhecimento que será transformado em texto. (10 Pontos)', points: 10 },
-                    { id: 'dt3', title: 'Bloco 3: Organização', description: 'Uma sessão de baixa intensidade para organizar as notas do dia, planejar em tópicos a escrita do dia seguinte e limpar a área de trabalho. Concluir este bloco garante uma vantagem estratégica para o dia seguinte. (5 Pontos Bônus)', points: 5 },
-                ],
-                saturday: [
-                    { id: 'sat1', title: 'Bloco 1: Revisão Semanal', description: 'Ler e corrigir o que foi escrito durante a semana, identificando pontos fracos e necessidades de revisão. (7 Pontos)', points: 7 },
-                    { id: 'sat2', title: 'Bloco 2: Planejamento Leve', description: 'Organizar as leituras e metas de escrita para a próxima semana, sem a pressão da execução imediata. (5 Pontos)', points: 5 },
-                ],
-                sunday: [
-                    { id: 'sun1', title: 'Bloco Opcional de Fim de Semana', description: 'Uma sessão de foco para tirar o atraso de pendências ou adiantar o trabalho da semana, garantindo uma vantagem estratégica. (15 Pontos Bônus)', points: 15 }
-                ]
-            }
-        };
-        
-        const ALL_ACHIEVEMENTS = {
-            general: {
-                firstTask: { title: 'Fragmento Superado!', description: 'Concluiu a primeira tarefa. A totalidade está um passo mais perto.' },
-                first1000Words: { title: 'Crítica à Economia Política (das Palavras)!', description: 'Acumulou 1.000 palavras. A base material da sua tese está sendo construída.' },
-                words5k: { title: 'Forças Produtivas em Expansão!', description: 'Alcançou 5.000 palavras. A superestrutura teórica se fortalece.' },
-                words15k: { title: 'Materialismo Histórico!', description: 'Alcançou 15.000 palavras. A história da sua pesquisa está sendo escrita.' },
-                allDaily: { title: 'Emancipação do Lazer!', description: 'A jornada de trabalho diária terminou. O tempo livre é seu por direito!' },
-                marathon5days: { title: 'Vanguarda Proletária!', description: 'Escreveu por 5 dias seguidos. A consistência é a arma da revolução.' },
-                focusMaster10: { title: 'Mestre da Práxis!', description: 'Completou 10 sessões de foco. Sua capacidade de concentração foi elevada.' },
-                points50: { title: 'Intelectual Orgânico!', description: 'Alcançou 50 pontos. Sua práxis está se tornando uma força material.' },
-                points150: { title: 'Hegemonia Conquistada!', description: 'Alcançou 150 pontos. Sua disciplina está guiando a luta de classes (acadêmica).' },
-                points300: { title: 'Ditadura do Proletariado (sobre a Procrastinação)!', description: 'Alcançou 300 pontos. Você está no controle dos meios de produção (intelectual).'}
-            },
-            chapters: { /* ... */ },
-            subchapters: { /* ... */ }
+                { id: 5, titulo: "Considerações finais", concluido: false, subcapitulos: [] },
+                { id: 6, titulo: "Referências", concluido: false, subcapitulos: [] },
+                { id: 7, titulo: "Anexos", concluido: false, subcapitulos: [] }
+            ]
         };
 
-        const DOMElements = {
-            nav: document.getElementById('nav-container'),
-            sections: document.querySelectorAll('.main-section'),
-            chaptersContainer: document.getElementById('chapters-container'),
-            totalProgressBar: document.getElementById('total-progress-bar'),
-            totalProgressText: document.getElementById('total-progress-text'),
-            dailyTaskList: document.getElementById('daily-task-list'),
-            currentDay: document.getElementById('current-day'),
-            wordInput: document.getElementById('word-count-input'),
-            addWordsBtn: document.getElementById('add-progress-button'),
-            totalWordsEl: document.getElementById('total-word-count'),
-            newChapterInput: document.getElementById('new-chapter-input'),
-            modal: document.getElementById('confirm-modal'),
-            modalConfirm: document.getElementById('modal-confirm'),
-            modalCancel: document.getElementById('modal-cancel'),
-            startFocusBtn: document.getElementById('start-focus-btn'),
-            focusModal: document.getElementById('focus-modal'),
-            focusModalCancel: document.getElementById('focus-modal-cancel'),
-            focusModalStart: document.getElementById('focus-modal-start'),
-            focusDurationOptions: document.getElementById('focus-duration-options'),
-            focusGoalInput: document.getElementById('focus-goal-input'),
-            focusFullscreenCheckbox: document.getElementById('focus-fullscreen-checkbox'),
-            focusPanel: document.getElementById('focus-panel'),
-            focusPanelGoal: document.getElementById('focus-panel-goal'),
-            focusPanelTimer: document.getElementById('focus-panel-timer'),
-            focusPanelProgress: document.getElementById('focus-panel-progress'),
-            focusPanelStop: document.getElementById('focus-panel-stop'),
-            fullscreenBtn: document.getElementById('fullscreen-btn'),
-            soundPanelToggle: document.getElementById('sound-panel-toggle'),
-            soundPanel: document.getElementById('sound-panel'),
-            achievementsContainer: document.getElementById('achievements-container'),
-            weeklyLogContainer: document.getElementById('weekly-log-container'),
-            dailyScoreEl: document.getElementById('daily-score'),
-            weeklyScoreEl: document.getElementById('weekly-score'),
-            saveDailyBtn: document.getElementById('save-daily-btn'),
-            saveManifestoBtn: document.getElementById('save-manifesto-btn'),
-            wordsHistoryChartCanvas: document.getElementById('words-history-chart')
-        };
+        const conquistasDef = [
+            { id: 'c01', nome: 'Início da Práxis', desc: 'Concluir a primeira tarefa diária.', desbloqueada: false, check: () => countCompletedTasksToday() > 0 },
+            { id: 'c02', nome: 'Consciência em Si', desc: 'Escrever as primeiras 1000 palavras.', desbloqueada: false, check: () => appData.progresso.totalPalavras >= 1000 },
+            { id: 'c03', nome: 'Semana Produtiva', desc: 'Completar tarefas em 5 dias da semana.', desbloqueada: false, check: () => Object.values(appData.progresso.semana).filter(d => d.tarefas.length > 0).length >= 5 },
+            { id: 'c04', nome: 'Pontuação de Luta', desc: 'Alcançar 50 pontos em uma semana.', desbloqueada: false, check: () => calculatePontosSemana() >= 50 },
+            { id: 'c05', nome: 'Totalidade Conquistada', desc: 'Concluir o primeiro capítulo.', desbloqueada: false, check: () => appData.dissertacao.capitulos.some(c => c.concluido) },
+            { id: 'c06', nome: 'O Alicerce', desc: 'Concluir a Introdução.', desbloqueada: false, check: () => appData.dissertacao.capitulos[0].concluido },
+            { id: 'c07', nome: 'Consciência para Si', desc: 'Escrever 10.000 palavras.', desbloqueada: false, check: () => appData.progresso.totalPalavras >= 10000 },
+            { id: 'c08', nome: 'Militante Disciplinado', desc: 'Alcançar 100 pontos em uma semana.', desbloqueada: false, check: () => calculatePontosSemana() >= 100 },
+            { id: 'c09', nome: 'O Fim da Jornada', desc: 'Concluir todos os capítulos da dissertação.', desbloqueada: false, check: () => isDissertacaoCompleta() },
+        ];
+
+        // Fila de Notificações
+        let notificationQueue = [];
+        let isNotifying = false;
+
+        // Elementos da DOM
+        const navButtons = document.querySelectorAll('.nav-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const praxisConteudo = document.getElementById('praxis-conteudo');
+        const salvarPraxisBtn = document.getElementById('salvar-praxis');
+        const palavrasDiaInput = document.getElementById('palavras-dia');
         
-        function getTodayString() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = (today.getMonth() + 1).toString().padStart(2, '0');
-            const day = today.getDate().toString().padStart(2, '0');
-            return `${year}-${month}-${day}`;
+        const dissertacaoEstrutura = document.getElementById('dissertacao-estrutura');
+        const salvarTotalidadeBtn = document.getElementById('salvar-totalidade');
+
+        // Inicialização
+        function init() {
+            loadData();
+            setupEventListeners();
+            renderAll();
         }
-        
-        function saveData() { localStorage.setItem('dissertationAppData', JSON.stringify(appData)); }
+
         function loadData() {
-            const savedData = localStorage.getItem('dissertationAppData');
-            appData = savedData ? JSON.parse(savedData) : JSON.parse(JSON.stringify(defaultData));
-        }
-
-        function showAchievement(title, message) {
-            const toast = document.getElementById('achievement-toast');
-            toast.querySelector('#achievement-title').textContent = title;
-            toast.querySelector('#achievement-message').textContent = message;
-            toast.style.top = '20px';
-            setTimeout(() => { toast.style.top = '-100px'; }, 5000);
-        }
-
-        function checkAchievements(type, data = {}) {
-            let achievementData = null;
-            switch(type) {
-                case 'FIRST_TASK': if (!appData.achievements.firstTask) { appData.achievements.firstTask = true; achievementData = ALL_ACHIEVEMENTS.general.firstTask; } break;
-                case 'SUBCHAPTER_COMPLETE': if (!appData.achievements.completedSubchapters.includes(data.subchapterId) && ALL_ACHIEVEMENTS.subchapters[data.subchapterId]) { appData.achievements.completedSubchapters.push(data.subchapterId); achievementData = ALL_ACHIEVEMENTS.subchapters[data.subchapterId]; } break;
-                case 'CHAPTER_COMPLETE': if (!appData.achievements.completedChapters.includes(data.chapterId) && ALL_ACHIEVEMENTS.chapters[data.chapterId]) { appData.achievements.completedChapters.push(data.chapterId); achievementData = ALL_ACHIEVEMENTS.chapters[data.chapterId]; } break;
-                case 'WORD_COUNT':
-                    if (appData.totalWords >= 15000 && !appData.achievements.words15k) { appData.achievements.words15k = true; achievementData = ALL_ACHIEVEMENTS.general.words15k; }
-                    else if (appData.totalWords >= 5000 && !appData.achievements.words5k) { appData.achievements.words5k = true; achievementData = ALL_ACHIEVEMENTS.general.words5k; }
-                    else if (appData.totalWords >= 1000 && !appData.achievements.first1000Words) { appData.achievements.first1000Words = true; achievementData = ALL_ACHIEVEMENTS.general.first1000Words; }
-                    break;
-                case 'DAILY_COMPLETE':
-                    const today = new Date();
-                    const tasksForToday = getTasksForDay(today.getDay());
-                    const todayStr = getTodayString();
-                    const todayLog = appData.weeklyLog[todayStr] || {};
-                    const allDone = tasksForToday.every(task => todayLog[task.id] === true);
-                    if (allDone) { achievementData = ALL_ACHIEVEMENTS.general.allDaily; }
-                    break;
-                case 'FOCUS_SESSION': appData.focusSessionsCompleted = (appData.focusSessionsCompleted || 0) + 1; if (appData.focusSessionsCompleted >= 10 && !appData.achievements.focusMaster10) { appData.achievements.focusMaster10 = true; achievementData = ALL_ACHIEVEMENTS.general.focusMaster10; } break;
-                case 'STREAK': if (!appData.achievements.marathon5days) {
-                    const history = Object.keys(appData.wordCountHistory).sort();
-                    if (history.length >= 5) {
-                        let consecutiveDays = 1;
-                        for (let i = history.length - 1; i > 0; i--) {
-                            const today = new Date(history[i]);
-                            const yesterday = new Date(history[i-1]);
-                            const diffTime = Math.abs(today - yesterday);
-                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            if (diffDays === 1) { consecutiveDays++; } else { break; }
-                        }
-                        if (consecutiveDays >= 5) { appData.achievements.marathon5days = true; achievementData = ALL_ACHIEVEMENTS.general.marathon5days; }
-                    }
-                } break;
-                case 'POINTS':
-                    if(appData.weeklyScore >= 300 && !appData.achievements.points300) { appData.achievements.points300 = true; achievementData = ALL_ACHIEVEMENTS.general.points300; }
-                    else if(appData.weeklyScore >= 150 && !appData.achievements.points150) { appData.achievements.points150 = true; achievementData = ALL_ACHIEVEMENTS.general.points150; }
-                    else if(appData.weeklyScore >= 50 && !appData.achievements.points50) { appData.achievements.points50 = true; achievementData = ALL_ACHIEVEMENTS.general.points50; }
-                    break;
+            const savedData = localStorage.getItem('painelPraxisData');
+            if (savedData) {
+                appData = JSON.parse(savedData);
+                // Garantir que as definições de conquista estejam atualizadas
+                appData.conquistas = mergeConquistas(appData.conquistas, conquistasDef);
+            } else {
+                appData = {
+                    dissertacao: JSON.parse(JSON.stringify(defaultDissertacao)),
+                    progresso: {
+                        totalPalavras: 0,
+                        historicoPalavras: [], // { data: 'YYYY-MM-DD', palavras: X }
+                        semana: { 1:{}, 2:{}, 3:{}, 4:{}, 5:{}, 6:{}, 0:{} } // dia da semana: { tarefas: [], pontos: 0 }
+                    },
+                    conquistas: JSON.parse(JSON.stringify(conquistasDef)),
+                    lastWeekReset: getWeekNumber(new Date())
+                };
             }
-            if (achievementData) {
-                showAchievement(achievementData.title, achievementData.description || achievementData.msg);
-                renderAchievements();
+            checkWeekReset();
+        }
+        
+        function mergeConquistas(saved, defaults) {
+            return defaults.map(def => {
+                const savedConquista = saved.find(s => s.id === def.id);
+                return savedConquista ? { ...def, desbloqueada: savedConquista.desbloqueada } : def;
+            });
+        }
+        
+        function getWeekNumber(d) {
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+            var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+            var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+            return d.getUTCFullYear() + '-' + weekNo;
+        }
+
+        function checkWeekReset() {
+            const currentWeek = getWeekNumber(new Date());
+            if (appData.lastWeekReset !== currentWeek) {
+                appData.progresso.semana = { 1:{}, 2:{}, 3:{}, 4:{}, 5:{}, 6:{}, 0:{} };
+                appData.lastWeekReset = currentWeek;
                 saveData();
             }
         }
 
-        function renderAchievements() {
-            const container = DOMElements.achievementsContainer;
-            if (!container) return;
-            const allAch = {...ALL_ACHIEVEMENTS.general, ...ALL_ACHIEVEMENTS.chapters};
-            container.innerHTML = Object.entries(allAch).map(([key, value]) => {
-                let isUnlocked = appData.achievements[key];
-                if (key.startsWith('ch')) isUnlocked = appData.achievements.completedChapters.includes(key);
-                
-                return `<div class="achievement-card ${isUnlocked ? '' : 'locked'} bg-gray-900/50 p-4 rounded-lg border border-gray-700 flex items-center space-x-4 transition"><div class="text-3xl">${isUnlocked ? '🏆' : '❓'}</div><div><h4 class="font-bold text-white">${value.title}</h4><p class="text-sm text-gray-400">${value.description}</p></div></div>`;
-            }).join('');
+        function saveData() {
+            localStorage.setItem('painelPraxisData', JSON.stringify(appData));
         }
-
-        function updatePoints() {
-            const today = getTodayString();
-            let dailyScore = 0;
-            const todayLog = appData.weeklyLog[today] || {};
-            const tasksForToday = getTasksForDay(new Date().getDay());
-            
-            tasksForToday.forEach(task => {
-                if(todayLog[task.id]) {
-                    dailyScore += task.points;
-                }
+        
+        function setupEventListeners() {
+            // Navegação
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    navButtons.forEach(btn => btn.classList.remove('active'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    
+                    button.classList.add('active');
+                    document.getElementById(button.dataset.tab).classList.add('active');
+                    if (button.dataset.tab === 'tab-balanco') {
+                       renderPalavrasChart();
+                    }
+                });
             });
 
-            const startOfWeek = new Date();
-            const day = startOfWeek.getDay();
-            const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); 
-            startOfWeek.setDate(diff);
-            startOfWeek.setHours(0,0,0,0);
+            // Aba Práxis
+            salvarPraxisBtn.addEventListener('click', handlePraxisSave);
 
-            let weeklyScore = 0;
-            for(let i=0; i<7; i++) {
-                const d = new Date(startOfWeek);
-                d.setDate(startOfWeek.getDate() + i);
-                const dateString = d.toISOString().split('T')[0];
-                if(appData.weeklyLog[dateString]) {
-                    const tasksForDay = getTasksForDay(d.getDay());
-                    Object.keys(appData.weeklyLog[dateString]).forEach(taskId => {
-                        if(appData.weeklyLog[dateString][taskId]) {
-                            const task = tasksForDay.find(t => t.id === taskId);
-                            if (task) weeklyScore += task.points;
-                        }
+            // Aba Totalidade
+            salvarTotalidadeBtn.addEventListener('click', handleTotalidadeSave);
+            document.getElementById('add-capitulo').addEventListener('click', () => addDissertacaoItem(null));
+        }
+
+        // --- LÓGICA DE RENDERIZAÇÃO ---
+        function renderAll() {
+            renderPraxisDiaria();
+            renderTotalidade();
+            renderBalanco();
+        }
+
+        // Renderização da Aba 1: Práxis Diária
+        function renderPraxisDiaria() {
+            const hoje = new Date();
+            const diaSemana = hoje.getDay(); // 0-Dom, 1-Seg, ...
+            let html = '';
+
+            const tarefasSalvas = appData.progresso.semana[diaSemana]?.tarefas || [];
+
+            if (diaSemana >= 1 && diaSemana <= 5) { // Seg a Sex
+                html += createTaskBlock('escrita', 'Escrita', 'Foco total na produção de texto.', 10, tarefasSalvas.includes('escrita'));
+                html += createTaskBlock('leitura', 'Leitura', 'Leitura e fichamento de bibliografia.', 5, tarefasSalvas.includes('leitura'));
+                html += createTaskBlock('organizacao', 'Organização', 'Revisar notas, organizar arquivos, etc.', 3, tarefasSalvas.includes('organizacao'));
+            } else if (diaSemana === 6) { // Sábado
+                html += createTaskBlock('revisao', 'Revisão Semanal', 'Revisar o que foi produzido na semana.', 8, tarefasSalvas.includes('revisao'));
+                html += createTaskBlock('planejamento', 'Planejamento Leve', 'Planejar as metas da próxima semana.', 4, tarefasSalvas.includes('planejamento'));
+            } else { // Domingo
+                html = '<div class="card"><p>Domingo é dia de descanso. A práxis também envolve a recuperação das forças para a luta!</p><button id="btn-avancar" class="btn-opcional">Preciso Avançar</button></div>';
+            }
+            
+            praxisConteudo.innerHTML = html;
+
+            if (document.getElementById('btn-avancar')) {
+                document.getElementById('btn-avancar').addEventListener('click', () => {
+                    let bonusHtml = createTaskBlock('bonus-domingo', 'Arrancada Final', 'Bloco de alta intensidade para avançar.', 15, tarefasSalvas.includes('bonus-domingo'), true);
+                    praxisConteudo.innerHTML = bonusHtml;
+                });
+            }
+
+            document.getElementById('total-palavras').textContent = appData.progresso.totalPalavras;
+            palavrasDiaInput.value = '';
+        }
+
+        function createTaskBlock(id, titulo, desc, pontos, checked, isBonus = false) {
+            return `
+                <div class="card task-block ${isBonus ? 'bonus' : ''}">
+                    <label>
+                        <input type="checkbox" data-task-id="${id}" data-pontos="${pontos}" ${checked ? 'checked' : ''}>
+                        <span>${titulo} (${pontos} pts)</span>
+                    </label>
+                    <p class="task-desc">${desc}</p>
+                </div>
+            `;
+        }
+
+        // Renderização da Aba 2: A Busca pela Totalidade
+        function renderTotalidade() {
+            let html = '';
+            appData.dissertacao.capitulos.forEach((cap, capIndex) => {
+                html += renderDissertacaoItem(cap, capIndex, null);
+                if (cap.subcapitulos.length > 0) {
+                    const progressoCap = calculateProgressoCapitulo(cap);
+                     html += `
+                        <div class="progress-bar-container" style="margin-left: 20px;">
+                            <div class="progress-bar" style="width: ${progressoCap}%;">${Math.round(progressoCap)}%</div>
+                        </div>
+                    `;
+                    cap.subcapitulos.forEach((sub, subIndex) => {
+                        html += renderDissertacaoItem(sub, capIndex, subIndex);
                     });
                 }
-            }
-            appData.weeklyScore = weeklyScore;
-
-            DOMElements.dailyScoreEl.textContent = dailyScore;
-            DOMElements.weeklyScoreEl.textContent = weeklyScore;
-            checkAchievements('POINTS');
+            });
+            dissertacaoEstrutura.innerHTML = html;
+            addTotalidadeEventListeners();
+            updateProgressoTotal();
         }
 
-        function renderWeeklyLog() {
-            const container = DOMElements.weeklyLogContainer;
-            if (!container) return;
-            container.innerHTML = '';
-            const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-            const startOfWeek = new Date();
-            const day = startOfWeek.getDay();
-            const diff = startOfWeek.getDate() - day; 
-            startOfWeek.setDate(diff);
-            startOfWeek.setHours(0,0,0,0);
-
-            let table = `<table class="w-full text-center text-xs"><thead><tr>`;
-            weekDays.forEach(d => table += `<th class="font-normal text-gray-400 pb-2">${d}</th>`);
-            table += `</tr></thead><tbody><tr>`;
-
-            for(let i=0; i<7; i++) {
-                const d = new Date(startOfWeek);
-                d.setDate(startOfWeek.getDate() + i);
-                const dateString = d.toISOString().split('T')[0];
-                const log = appData.weeklyLog[dateString] || {};
-                const tasksForDay = getTasksForDay(d.getDay());
-                
-                table += `<td class="p-1"><div class="flex justify-center items-center gap-1">`;
-                tasksForDay.forEach(task => {
-                    let color = 'bg-gray-600';
-                    if(log[task.id] === true) color = task.points === 5 || task.points === 15 ? 'bg-purple-500' : 'bg-green-500';
-                    table += `<div class="week-log-day-block ${color}" title="${task.title}"></div>`;
-                });
-                table += `</div></td>`;
-            }
-            table += `</tr></tbody></table>`;
-            container.innerHTML = table;
+        function renderDissertacaoItem(item, capIndex, subIndex) {
+            const isSub = subIndex !== null;
+            return `
+                <div class="dissertacao-item ${isSub ? 'subcapitulo' : ''}" data-cap-index="${capIndex}" data-sub-index="${subIndex !== null ? subIndex : ''}">
+                    <span class="item-titulo" ondblclick="editItemTitle(this, ${capIndex}, ${subIndex})">${item.titulo}</span>
+                    <div class="item-actions">
+                        ${(item.subcapitulos && item.subcapitulos.length === 0) || isSub ? 
+                            `<button class="btn-concluir ${item.concluido ? 'concluido' : ''}" onclick="toggleItemConcluido(${capIndex}, ${subIndex})">${item.concluido ? 'Concluído' : 'Concluir'}</button>` : 
+                            `<button class="btn-add" onclick="addDissertacaoItem(${capIndex})">+</button>`
+                        }
+                        <span class="btn-delete" onclick="deleteDissertacaoItem(${capIndex}, ${subIndex})">🗑️</span>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function updateProgressoTotal() {
+            let totalItens = 0;
+            let concluidosItens = 0;
+            appData.dissertacao.capitulos.forEach(cap => {
+                if (cap.subcapitulos.length > 0) {
+                     cap.subcapitulos.forEach(sub => {
+                        totalItens++;
+                        if (sub.concluido) concluidosItens++;
+                    });
+                } else {
+                    totalItens++;
+                    if (cap.concluido) concluidosItens++;
+                }
+            });
+            const progressoGeral = totalItens > 0 ? (concluidosItens / totalItens) * 100 : 0;
+            const barra = document.getElementById('progresso-total-barra');
+            barra.style.width = progressoGeral + '%';
+            barra.textContent = Math.round(progressoGeral) + '%';
+        }
+        
+        function calculateProgressoCapitulo(cap) {
+            if (!cap.subcapitulos || cap.subcapitulos.length === 0) return cap.concluido ? 100 : 0;
+            const concluidos = cap.subcapitulos.filter(s => s.concluido).length;
+            return (concluidos / cap.subcapitulos.length) * 100;
         }
 
-        function renderWordsHistoryChart() {
-            const canvas = DOMElements.wordsHistoryChartCanvas;
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
+        function addTotalidadeEventListeners() {
+            // Event listeners for inline functions are already set. This is for more complex setups if needed.
+        }
+
+        // Renderização da Aba 3: Balanço Histórico
+        function renderBalanco() {
+            renderRegistroSemanal();
+            renderPontuacao();
+            renderConquistas();
+            renderPalavrasChart(); // Renderiza o gráfico se a aba estiver visível
+        }
+        
+        function renderRegistroSemanal() {
+            for (let i = 0; i <= 6; i++) {
+                const diaEl = document.getElementById(`dia-${i}`);
+                const diaData = appData.progresso.semana[i];
+                let innerHTML = '';
+                if (diaData && diaData.tarefas) {
+                    const blocos = diaData.tarefas.length > 3 ? 3 : diaData.tarefas.length;
+                    for(let j = 0; j < blocos; j++) {
+                        const isBonus = diaData.tarefas[j].includes('bonus') || diaData.tarefas[j].includes('revisao');
+                        innerHTML += `<div class="bloco-status ${isBonus ? 'concluido-bonus' : 'concluido-main'}"></div>`;
+                    }
+                }
+                diaEl.querySelector('.dia-status-inner').innerHTML = innerHTML;
+            }
+        }
+        
+        function renderPontuacao() {
+            const hoje = new Date().getDay();
+            const pontosHoje = appData.progresso.semana[hoje]?.pontos || 0;
+            const pontosSemana = calculatePontosSemana();
+            document.getElementById('pontos-dia').textContent = pontosHoje;
+            document.getElementById('pontos-semana').textContent = pontosSemana;
+        }
+        
+        function calculatePontosSemana() {
+            return Object.values(appData.progresso.semana).reduce((total, dia) => total + (dia.pontos || 0), 0);
+        }
+
+        function renderConquistas() {
+            const painel = document.getElementById('conquistas-painel');
+            let html = '';
+            appData.conquistas.forEach(c => {
+                html += `
+                    <div class="conquista ${c.desbloqueada ? 'desbloqueada' : ''}" onclick="alert('${c.desbloqueada ? 'Conquistado: ' : ''}${c.desc}')">
+                        <span class="conquista-icone">${c.desbloqueada ? '🏆' : '❓'}</span>
+                        <span class="conquista-nome">${c.nome}</span>
+                    </div>
+                `;
+            });
+            painel.innerHTML = html;
+        }
+        
+        let palavrasChartInstance = null;
+        function renderPalavrasChart() {
+            if (!document.getElementById('tab-balanco').classList.contains('active')) return;
             
-            const history = appData.wordCountHistory;
-            const sortedDates = Object.keys(history).sort((a, b) => new Date(a) - new Date(b));
+            const ctx = document.getElementById('palavras-chart').getContext('2d');
+            const historico = appData.progresso.historicoPalavras;
             
-            const data = sortedDates.map(date => {
-                return { x: date, y: history[date] };
+            // Acumular os totais
+            let cumulativeTotal = 0;
+            const cumulativeData = historico.map(entry => {
+                cumulativeTotal += entry.palavras;
+                return { data: entry.data, total: cumulativeTotal };
             });
 
-            if (wordsHistoryChart) {
-                wordsHistoryChart.destroy();
+            const labels = cumulativeData.map(h => new Date(h.data).toLocaleDateString('pt-BR'));
+            const data = cumulativeData.map(h => h.total);
+
+            if (palavrasChartInstance) {
+                palavrasChartInstance.destroy();
             }
 
-            wordsHistoryChart = new Chart(ctx, {
+            palavrasChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
+                    labels: labels,
                     datasets: [{
-                        label: 'Palavras Escritas por Dia',
+                        label: 'Total de Palavras Acumuladas',
                         data: data,
-                        borderColor: '#4f46e5',
-                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        borderColor: 'rgba(183, 28, 28, 1)',
+                        backgroundColor: 'rgba(183, 28, 28, 0.2)',
                         fill: true,
                         tension: 0.1
                     }]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
                     scales: {
-                        x: { type: 'time', time: { unit: 'day' }, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#9ca3af' } },
-                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#9ca3af' } }
-                    },
-                    plugins: { legend: { display: false } }
+                        y: { beginAtZero: true }
+                    }
                 }
             });
         }
 
-        function updateProgress() {
-            let totalItems = 0, completedItems = 0;
-            appData.dissertation.forEach(chapter => {
-                let chapterTotal = 0, chapterCompleted = 0;
-                if (chapter.subchapters.length > 0) {
-                    chapter.subchapters.forEach(sub => {
-                        chapterTotal++;
-                        if (sub.completed) chapterCompleted++;
-                    });
+
+        // --- LÓGICA DE MANIPULAÇÃO DE DADOS E EVENTOS ---
+
+        function handlePraxisSave() {
+            const hoje = new Date();
+            const diaSemana = hoje.getDay();
+            const hojeStr = hoje.toISOString().split('T')[0];
+
+            // Salvar tarefas e pontos
+            const checkboxes = document.querySelectorAll('#praxis-conteudo input[type="checkbox"]');
+            let tarefasConcluidas = [];
+            let pontosDia = 0;
+            checkboxes.forEach(cb => {
+                if (cb.checked) {
+                    tarefasConcluidas.push(cb.dataset.taskId);
+                    pontosDia += parseInt(cb.dataset.pontos, 10);
+                }
+            });
+            appData.progresso.semana[diaSemana] = { tarefas: tarefasConcluidas, pontos: pontosDia };
+            
+            // Salvar palavras
+            const palavrasHoje = parseInt(palavrasDiaInput.value, 10) || 0;
+            if (palavrasHoje > 0) {
+                appData.progresso.totalPalavras += palavrasHoje;
+                const historicoEntry = appData.progresso.historicoPalavras.find(h => h.data === hojeStr);
+                if (historicoEntry) {
+                    historicoEntry.palavras += palavrasHoje;
                 } else {
-                    chapterTotal = 1;
-                    if(chapter.completed) chapterCompleted = 1;
+                    appData.progresso.historicoPalavras.push({ data: hojeStr, palavras: palavrasHoje });
                 }
-                totalItems += chapterTotal;
-                completedItems += chapterCompleted;
-
-                const chapterProgress = chapterTotal > 0 ? (chapterCompleted / chapterTotal) * 100 : 0;
-                const progressBar = document.querySelector(`#progress-${chapter.id}`);
-                const progressText = document.querySelector(`#progress-text-${chapter.id}`);
-                if (progressBar) progressBar.style.width = `${chapterProgress}%`;
-                if (progressText) progressText.textContent = `${Math.round(chapterProgress)}%`;
-                if (chapterProgress === 100 && chapterTotal > 0) {
-                    checkAchievements('CHAPTER_COMPLETE', { chapterId: chapter.id, chapterTitle: chapter.title });
-                }
-            });
-            const totalProgress = totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
-            DOMElements.totalProgressBar.style.width = `${totalProgress}%`;
-            DOMElements.totalProgressText.textContent = `${Math.round(totalProgress)}%`;
-        }
-        
-        function renderDissertationMap() {
-            DOMElements.chaptersContainer.innerHTML = appData.dissertation.map(chapter => {
-                const hasSubchapters = chapter.subchapters.length > 0;
-                const chapterItemClass = chapter.completed ? 'completed' : '';
-                return `
-                <div class="bg-gray-900/50 border border-gray-700 rounded-lg chapter-item ${chapterItemClass}" data-id="${chapter.id}" data-type="chapter">
-                    <div class="accordion-button w-full p-4 text-left flex justify-between items-center cursor-pointer chapter-header">
-                        <div class="flex-grow">
-                            <h3 class="font-bold text-lg text-white editable">${chapter.title}</h3>
-                            ${hasSubchapters ? `<div class="w-full progress-bar-bg rounded-full h-2.5 mt-2"><div id="progress-${chapter.id}" class="chapter-progress-bar-fill h-2.5 rounded-full"></div></div>` : ''}
-                        </div>
-                        <div class="flex items-center ml-4">
-                            ${hasSubchapters ? `<span id="progress-text-${chapter.id}" class="text-sm font-medium text-green-300 mr-4"></span>` : `<button class="complete-btn text-2xl ${chapter.completed ? 'text-green-400' : 'text-gray-600'} hover:text-green-300 mr-4" title="Marcar como Concluído">${chapter.completed ? '✔' : '○'}</button>`}
-                            <button class="delete-btn text-red-500 hover:text-red-400 mr-4" title="Excluir Capítulo">&#10005;</button>
-                            ${hasSubchapters ? `<span class="transform transition-transform duration-300 text-gray-400">&#9662;</span>` : ''}
-                        </div>
-                    </div>
-                    ${hasSubchapters ? `<div class="accordion-content px-4 pb-4">
-                        <div class="subchapters-list space-y-4 mt-4">
-                        ${chapter.subchapters.map(sub => {
-                            const subItemClass = sub.completed ? 'completed' : '';
-                            return `
-                            <div class="pl-4 border-l-2 border-gray-700 subchapter-item ${subItemClass}" data-id="${sub.id}" data-type="subchapter">
-                                <div class="flex justify-between items-center subchapter-title"><h4 class="font-semibold text-purple-300 editable flex-grow">${sub.title}</h4><div class="flex items-center"><button class="complete-btn text-2xl ${sub.completed ? 'text-green-400' : 'text-gray-600'} hover:text-green-300 mr-2" title="Marcar como Concluído">${sub.completed ? '✔' : '○'}</button><button class="delete-btn text-red-500 hover:text-red-400 ml-2" title="Excluir Subcapítulo">&#10005;</button></div></div>
-                                <div class="tasks-list mt-2 space-y-2">
-                                    ${sub.tasks.map(task => `<div class="task-item flex items-center" data-id="${task.id}" data-type="task"><input type="checkbox" id="${task.id}" ${task.completed ? 'checked' : ''} class="h-4 w-4 rounded bg-gray-600 border-gray-500 text-purple-500 focus:ring-purple-600"><label for="${task.id}" class="task-label ml-3 text-sm text-gray-300 editable flex-grow">${task.text}</label><button class="delete-btn text-red-500 hover:text-red-400 ml-2" title="Excluir Tarefa">&#10005;</button></div>`).join('')}
-                                </div>
-                                <div class="mt-2"><input type="text" class="new-item-input bg-gray-700 border border-gray-600 text-sm rounded-md w-full p-1" placeholder="+ Adicionar nova tarefa..." data-type="task"/></div>
-                            </div>`}).join('')}
-                        </div>
-                         <div class="mt-4 pt-4 border-t border-gray-700"><input type="text" class="new-item-input bg-gray-700 border border-gray-600 text-sm rounded-md w-full p-1" placeholder="+ Adicionar novo subcapítulo..." data-type="subchapter"/></div>
-                    </div>` : ''}
-                </div>`}).join('');
-            updateProgress();
-        }
-
-        function getTasksForDay(dayIndex) {
-            if (dayIndex === 6) return appData.taskTemplates.saturday;
-            if (dayIndex === 0) return appData.taskTemplates.sunday;
-            return appData.taskTemplates.weekday;
-        }
-
-        function renderDailyPanel() {
-            const today = new Date();
-            const dayIndex = today.getDay();
-            const dayNames = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-            DOMElements.currentDay.textContent = dayNames[dayIndex];
-            
-            const taskListContainer = DOMElements.dailyTaskList;
-            taskListContainer.innerHTML = '';
-
-            if (dayIndex === 0) { // Domingo
-                taskListContainer.innerHTML = `
-                    <div class="text-center p-8">
-                        <p class="text-gray-400">Domingo é dia de recarregar as energias para a luta da próxima semana. O descanso também é revolucionário.</p>
-                        <button id="sunday-optional-btn" class="mt-4 bg-purple-800 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg">Preciso Avançar (Bloco Opcional)</button>
-                    </div>
-                `;
-                document.getElementById('sunday-optional-btn').addEventListener('click', () => {
-                    renderTasks(appData.taskTemplates.sunday);
-                });
-            } else {
-                const tasksForToday = getTasksForDay(dayIndex);
-                renderTasks(tasksForToday);
             }
-        }
 
-        function renderTasks(tasks) {
-            const todayLog = appData.weeklyLog[getTodayString()] || {};
-            DOMElements.dailyTaskList.innerHTML = tasks.map(task => {
-                const isChecked = todayLog[task.id] || false;
-                return `<div class="task-item flex items-start p-4 border border-gray-700 rounded-lg bg-gray-900/50"><div class="flex items-center h-6"><input id="${task.id}" type="checkbox" ${isChecked ? 'checked' : ''} class="h-5 w-5 rounded bg-gray-600 border-gray-500 text-purple-500 focus:ring-purple-600"></div><div class="ml-4 text-sm"><label for="${task.id}" class="font-bold text-white">${task.title}</label><p class="text-gray-400">${task.description}</p></div></div>`
-            }).join('');
-        }
-        
-        function makeEditable(e) {
-            if (!e.target.classList.contains('editable')) return;
-            // ... (restante da função)
-        }
-        
-        function handleItemCreation(e) {
-            // ... (restante da função)
-        }
-
-        function handleDelete(e) {
-            // ... (restante da função)
-        }
-
-        DOMElements.modalConfirm.addEventListener('click', () => {
-            // ... (restante da função)
-        });
-        
-        DOMElements.modalCancel.addEventListener('click', () => {
-            // ... (restante da função)
-        });
-
-        DOMElements.nav.addEventListener('click', (e) => {
-            if (e.target.tagName === 'BUTTON') {
-                const targetId = e.target.dataset.target;
-                DOMElements.sections.forEach(section => section.classList.add('hidden'));
-                document.getElementById(targetId).classList.remove('hidden');
-                DOMElements.nav.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
-                e.target.classList.add('active');
-            }
-        });
-
-        DOMElements.chaptersContainer.addEventListener('click', (e) => {
-            // ... (restante da função)
-        });
-        DOMElements.chaptersContainer.addEventListener('dblclick', makeEditable);
-        DOMElements.chaptersContainer.addEventListener('keypress', handleItemCreation);
-        DOMElements.newChapterInput.addEventListener('keypress', handleItemCreation);
-        
-        DOMElements.saveManifestoBtn.addEventListener('click', () => {
-            // ... (restante da função)
-        });
-
-        DOMElements.saveDailyBtn.addEventListener('click', () => {
-            const today = getTodayString();
-            if (!appData.weeklyLog[today]) appData.weeklyLog[today] = {};
-
-            DOMElements.dailyTaskList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-                appData.weeklyLog[today][checkbox.id] = checkbox.checked;
-            });
-            
-            updatePoints();
-            renderWeeklyLog();
-            checkAchievements('DAILY_COMPLETE');
+            checkAndUnlockConquistas();
             saveData();
-            showAchievement("Práxis Registrada!", "O balanço do dia foi salvo. A luta continua amanhã.");
-        });
-
-        DOMElements.addWordsBtn.addEventListener('click', () => {
-            // ... (restante da função)
-        });
-
-        function startFocusTimer(duration, goal) {
-            // ... (restante da função)
+            renderAll();
+            alert('Práxis diária registrada com sucesso!');
         }
-
-        function stopFocusTimer(completed = false) {
-            // ... (restante da função)
-        }
-
-        DOMElements.startFocusBtn.addEventListener('click', () => DOMElements.focusModal.classList.remove('hidden'));
-        DOMElements.focusModalCancel.addEventListener('click', () => DOMElements.focusModal.classList.add('hidden'));
-        DOMElements.focusDurationOptions.addEventListener('click', (e) => {
-            // ... (restante da função)
-        });
-        DOMElements.focusModalStart.addEventListener('click', () => {
-            // ... (restante da função)
-        });
-        DOMElements.focusPanelStop.addEventListener('click', () => stopFocusTimer(false));
-
-        DOMElements.fullscreenBtn.addEventListener('click', () => {
-            // ... (restante da função)
-        });
         
-        function stopSound() {
-            // ... (restante da função)
+        function handleTotalidadeSave() {
+            // A estrutura já é atualizada em tempo real no objeto appData pelas funções `onclick`
+            checkAndUnlockConquistas();
+            saveData();
+            renderTotalidade(); // Re-renderizar para atualizar visualmente
+            alert('Estrutura e progresso da Totalidade salvos!');
         }
 
-        function playSound(soundType) {
-            // ... (restante da função)
-        }
-
-        DOMElements.soundPanelToggle.addEventListener('click', () => {
-             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-             DOMElements.soundPanel.classList.toggle('hidden');
-        });
-        DOMElements.soundPanel.addEventListener('click', (e) => {
-            // ... (restante da função)
-        });
-        
-        function init() {
-            loadData();
-            renderDailyPanel();
-            renderDissertationMap();
-            renderAchievements();
-            renderWeeklyLog();
-            renderWordsHistoryChart();
-            updatePoints();
-            DOMElements.totalWordsEl.textContent = appData.totalWords || 0;
-            const today = new Date();
-            const startOfWeek = new Date(today);
-            startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + (startOfWeek.getDay() === 0 ? -6 : 1));
-            startOfWeek.setHours(0,0,0,0);
+        // Funções globais para serem chamadas pelo HTML inline
+        window.toggleItemConcluido = function(capIndex, subIndex) {
+            let item;
+            if (subIndex !== null) {
+                item = appData.dissertacao.capitulos[capIndex].subcapitulos[subIndex];
+            } else {
+                item = appData.dissertacao.capitulos[capIndex];
+            }
+            item.concluido = !item.concluido;
             
-            const lastLogDateStr = Object.keys(appData.weeklyLog).pop();
-            if(lastLogDateStr) {
-                const lastLogWeekStart = new Date(lastLogDateStr);
-                lastLogWeekStart.setDate(lastLogWeekStart.getDate() - lastLogWeekStart.getDay() + (lastLogWeekStart.getDay() === 0 ? -6 : 1));
-                lastLogWeekStart.setHours(0,0,0,0);
-                if(startOfWeek > lastLogWeekStart) {
-                    appData.weeklyLog = {};
-                    appData.weeklyScore = 0;
-                    saveData();
+            // Se um capitulo com subcapítulos tem todos eles concluídos, o capítulo é concluído
+            const cap = appData.dissertacao.capitulos[capIndex];
+            if (cap.subcapitulos.length > 0) {
+                cap.concluido = cap.subcapitulos.every(s => s.concluido);
+            }
+
+            renderTotalidade();
+        }
+
+        window.deleteDissertacaoItem = function(capIndex, subIndex) {
+            const confirmacao = confirm('Tem certeza que deseja apagar este item? Esta ação não pode ser desfeita.');
+            if (confirmacao) {
+                if (subIndex !== null) {
+                    appData.dissertacao.capitulos[capIndex].subcapitulos.splice(subIndex, 1);
+                } else {
+                    appData.dissertacao.capitulos.splice(capIndex, 1);
                 }
+                renderTotalidade();
             }
         }
         
+        window.addDissertacaoItem = function(capIndex) {
+            const titulo = prompt(capIndex === null ? 'Digite o título do novo capítulo:' : 'Digite o título do novo subcapítulo:');
+            if (titulo) {
+                const newItem = {
+                    id: Date.now(),
+                    titulo: titulo,
+                    concluido: false,
+                };
+                if (capIndex === null) {
+                    newItem.subcapitulos = [];
+                    appData.dissertacao.capitulos.push(newItem);
+                } else {
+                    appData.dissertacao.capitulos[capIndex].subcapitulos.push(newItem);
+                }
+                renderTotalidade();
+            }
+        }
+
+        window.editItemTitle = function(element, capIndex, subIndex) {
+            const item = (subIndex !== null) ? appData.dissertacao.capitulos[capIndex].subcapitulos[subIndex] : appData.dissertacao.capitulos[capIndex];
+            const novoTitulo = prompt('Editar título:', item.titulo);
+            if (novoTitulo && novoTitulo.trim() !== '') {
+                item.titulo = novoTitulo.trim();
+                element.textContent = item.titulo;
+            }
+        }
+        
+        // --- SISTEMA DE CONQUISTAS E NOTIFICAÇÕES ---
+        function countCompletedTasksToday() {
+            const hoje = new Date().getDay();
+            return appData.progresso.semana[hoje]?.tarefas?.length || 0;
+        }
+
+        function isDissertacaoCompleta() {
+            return appData.dissertacao.capitulos.every(cap => cap.concluido);
+        }
+        
+        function checkAndUnlockConquistas() {
+            appData.conquistas.forEach(conquista => {
+                if (!conquista.desbloqueada && conquista.check()) {
+                    conquista.desbloqueada = true;
+                    notificationQueue.push(`🏆 Conquista Desbloqueada: ${conquista.nome}`);
+                }
+            });
+            processNotificationQueue();
+        }
+
+        function processNotificationQueue() {
+            if (isNotifying || notificationQueue.length === 0) {
+                return;
+            }
+            isNotifying = true;
+            const message = notificationQueue.shift();
+            const notificationContainer = document.getElementById('notification-container');
+            const notificationText = document.getElementById('notification-text');
+
+            notificationText.textContent = message;
+            notificationContainer.classList.add('show');
+
+            setTimeout(() => {
+                notificationContainer.classList.remove('show');
+                setTimeout(() => {
+                    isNotifying = false;
+                    processNotificationQueue();
+                }, 500); // Espera a animação de saída
+            }, 5000); // Tempo que a notificação fica visível
+        }
+
+
+        // Iniciar o App
         init();
     });
-    //]]>
     </script>
 </body>
 </html>
