@@ -125,7 +125,10 @@
                 <!-- Gráfico de Palavras -->
                 <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
                     <h3 class="font-bold mb-4">Evolução da Produção Material (Palavras)</h3>
-                    <canvas id="word-count-chart"></canvas>
+                    <!-- CORREÇÃO: Adicionado um wrapper com altura fixa para o canvas -->
+                    <div class="relative h-80">
+                        <canvas id="word-count-chart"></canvas>
+                    </div>
                 </div>
 
                 <!-- Painel de Conquistas -->
@@ -278,7 +281,7 @@
             renderAll() {
                 this.renderPraxis();
                 this.renderTotalidade();
-                this.renderBalanco();
+                // Não renderiza o balanço inicialmente para evitar processamento desnecessário
             },
 
             // --- Tema ---
@@ -301,9 +304,8 @@
                     this.ui.theme.iconLight.classList.remove('hidden');
                     this.ui.theme.iconDark.classList.add('hidden');
                 }
-                // Recarregar o gráfico para aplicar as cores do tema
-                if (this.wordChart) {
-                    this.wordChart.destroy();
+                // Recarregar o gráfico se ele estiver visível
+                if (!this.ui.tabs.balanco.classList.contains('hidden')) {
                     this.renderWordChart();
                 }
             },
@@ -331,7 +333,7 @@
                         btn.classList.add('text-gray-500', 'dark:text-gray-400', 'border-transparent');
                     }
                 });
-                // Renderiza o balanço apenas quando a aba é aberta para garantir que o gráfico seja visível
+                // Renderiza o balanço apenas quando a aba é aberta para garantir que o gráfico seja visível e atualizado
                 if (tabId === 'balanco') {
                     this.renderBalanco();
                 }
@@ -488,7 +490,7 @@
                 this.saveState();
                 this.showNotification('Sucesso!', 'Sua práxis diária foi registrada.', 'success');
                 this.renderPraxis();
-                this.renderBalanco();
+                // Não renderiza o balanço aqui, será renderizado quando o usuário clicar na aba
             },
             
             calculateTotalWords() {
@@ -665,7 +667,8 @@
 
             renderWeeklyRecord() {
                 const container = this.ui.balanco.weeklyRecord;
-                container.innerHTML = '';
+                // CORREÇÃO: Construir o HTML em uma string para melhor performance
+                let html = '';
                 const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
                 const today = new Date();
                 const dayOfWeek = today.getDay();
@@ -684,13 +687,14 @@
                         }
                     }
 
-                    container.innerHTML += `
+                    html += `
                         <div class="text-center">
                             <p class="font-semibold">${dayNames[i]}</p>
                             <div class="w-8 h-8 mx-auto mt-1 rounded ${colorClass}"></div>
                         </div>
                     `;
                 }
+                container.innerHTML = html;
             },
             
             renderScores() {
@@ -740,7 +744,7 @@
                     },
                     options: {
                         responsive: true,
-                        maintainAspectRatio: false,
+                        maintainAspectRatio: false, // Essencial para o wrapper funcionar
                         scales: {
                             y: {
                                 beginAtZero: true,
@@ -763,10 +767,10 @@
 
             renderAchievements() {
                 const container = this.ui.balanco.achievementsGallery;
-                container.innerHTML = '';
+                let html = '';
                 Object.values(this.state.achievements).forEach(ach => {
                     const unlocked = ach.unlocked;
-                    container.innerHTML += `
+                    html += `
                         <div class="p-3 rounded-lg text-center ${unlocked ? 'bg-green-100 dark:bg-green-900/50' : 'bg-gray-200 dark:bg-gray-700'}">
                             <div class="text-4xl mb-2">${unlocked ? '🏆' : '❓'}</div>
                             <h4 class="font-bold text-sm ${unlocked ? 'text-green-800 dark:text-green-300' : ''}">${ach.title}</h4>
@@ -774,6 +778,7 @@
                         </div>
                     `;
                 });
+                container.innerHTML = html;
             },
             
             // --- Sistema de Conquistas e Notificações ---
@@ -816,7 +821,7 @@
                 check('words10k', totalWords >= 10000);
                 check('words50k', totalWords >= 50000);
                 
-                const weeklyScore = parseInt(this.ui.balanco.scoreWeek.textContent, 10);
+                const weeklyScore = this.calculateWeeklyScore();
                 check('score100', weeklyScore >= 100);
                 
                 const todayKey = new Date().toISOString().split('T')[0];
@@ -848,6 +853,22 @@
                 
                 const allItems = this.state.dissertation.structure.flatMap(item => (item.children && item.children.length > 0) ? item.children : [item]);
                 check('dissertation_done', allItems.every(item => item.completed));
+            },
+
+            calculateWeeklyScore() {
+                const today = new Date();
+                const dayOfWeek = today.getDay();
+                let weeklyScore = 0;
+                for (let i = 0; i <= dayOfWeek; i++) {
+                    const date = new Date();
+                    date.setDate(today.getDate() - (dayOfWeek - i));
+                    const dateKey = date.toISOString().split('T')[0];
+                    const log = this.state.praxisLog[dateKey];
+                    if (log && log.score) {
+                        weeklyScore += log.score;
+                    }
+                }
+                return weeklyScore;
             },
             
             getDaysThisWeek() {
